@@ -17,7 +17,7 @@ struct coroutine_args {
     int** cells;
     };
 
-void* generate_workload(void* transaction_args) {
+void* execute_workload(void* transaction_args) {
     struct coroutine_args* args = (struct coroutine_args*)transaction_args;
     
     for(int i = 0; i < args->total_transaction; ++i){
@@ -25,13 +25,16 @@ void* generate_workload(void* transaction_args) {
         args->cells[args->thread_number][cell] += 1;
     }
 }
+ 
 
 int main() {
 
     pthread_t handlers[THREADS];
     coroutine_args args[THREADS];
     int** all_cells = (int**)malloc(sizeof(int*) * THREADS);
+    srand((unsigned)time(NULL));
 
+    //Init memory
     for(int i = 0; i < THREADS; ++i){
         all_cells[i] = (int*)malloc(sizeof(int) * CELLS);
         for(int j = 0; j < CELLS; ++j){
@@ -39,14 +42,13 @@ int main() {
         }
     }
 
-    srand((unsigned)time(NULL));
-
     for(int i = 0; i < THREADS; ++i) {
         for(int j = 0; j < CELLS; ++j){
             all_cells[i][j] = 0;
         }
     }
 
+    //Init transaction set
     int transaction[TRANSACTION_SET_SIZE];
     for(int i = 0; i < TRANSACTION_SET_SIZE; ++i){
         uint random_value = rand();
@@ -56,15 +58,17 @@ int main() {
 
     clock_t begin = clock();
 
+    //Thread creation
     for(int i = 0; i < THREADS; ++i) {
         args[i] = { TRANSACTIONS/THREADS, i, transaction, all_cells};        
-        pthread_create(&handlers[i], NULL, generate_workload, (void*)&args[i]);
+        pthread_create(&handlers[i], NULL, execute_workload, (void*)&args[i]);
     }
     
     for(int i = 0; i < THREADS; ++i) {
         pthread_join(handlers[i], NULL);
     }
 
+    //Time and value checks
     clock_t end = clock();
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
     
@@ -76,7 +80,7 @@ int main() {
         free(all_cells[i]);
     }
     free(all_cells);
-    
+
     printf("Total value: %u \n", total_value);
     printf("Time spent: %f \n", time_spent);
 }
