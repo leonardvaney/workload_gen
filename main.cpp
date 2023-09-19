@@ -4,24 +4,22 @@
 #include <time.h>
 
 #define THREADS 8
-#define TRANSACTIONS 50000000
-#define CELLS_POWER 10
+#define CELLS_POWER 20
 #define CELLS (1 << CELLS_POWER)
 #define TRANSACTION_SET_SIZE 10000
 
 
 struct coroutine_args {
-    int total_transaction;
-    int thread_number;
-    int* transaction_set;
-    int** cells;
+    uint thread_number;
+    uint* transaction_set;
+    uint** cells;
     };
 
 void* execute_workload(void* transaction_args) {
     struct coroutine_args* args = (struct coroutine_args*)transaction_args;
     
-    for(int i = 0; i < args->total_transaction; ++i){
-        int cell = args->transaction_set[i%TRANSACTION_SET_SIZE];
+    for(uint i = 0;; ++i){
+        uint cell = args->transaction_set[i%TRANSACTION_SET_SIZE];
         args->cells[args->thread_number][cell] += 1;
     }
 }
@@ -31,56 +29,61 @@ int main() {
 
     pthread_t handlers[THREADS];
     coroutine_args args[THREADS];
-    int** all_cells = (int**)malloc(sizeof(int*) * THREADS);
+    uint** all_cells = (uint**)malloc(sizeof(uint*) * THREADS);
     srand((unsigned)time(NULL));
 
     //Init memory
-    for(int i = 0; i < THREADS; ++i){
-        all_cells[i] = (int*)malloc(sizeof(int) * CELLS);
-        for(int j = 0; j < CELLS; ++j){
+    for(uint i = 0; i < THREADS; ++i){
+        all_cells[i] = (uint*)malloc(sizeof(uint) * CELLS);
+        for(uint j = 0; j < CELLS; ++j){
             all_cells[i][j] = 0;
         }
     }
 
-    for(int i = 0; i < THREADS; ++i) {
-        for(int j = 0; j < CELLS; ++j){
+    for(uint i = 0; i < THREADS; ++i) {
+        for(uint j = 0; j < CELLS; ++j){
             all_cells[i][j] = 0;
         }
     }
 
     //Init transaction set
-    int transaction[TRANSACTION_SET_SIZE];
-    for(int i = 0; i < TRANSACTION_SET_SIZE; ++i){
+    uint transaction[TRANSACTION_SET_SIZE];
+    for(uint i = 0; i < TRANSACTION_SET_SIZE; ++i){
         uint random_value = rand();
         uint cell_number = random_value%CELLS;
         transaction[i] = cell_number;
     }
 
-    clock_t begin = clock();
-
     //Thread creation
-    for(int i = 0; i < THREADS; ++i) {
-        args[i] = { TRANSACTIONS/THREADS, i, transaction, all_cells};        
+    for(uint i = 0; i < THREADS; ++i) {
+        args[i] = { i, transaction, all_cells };        
         pthread_create(&handlers[i], NULL, execute_workload, (void*)&args[i]);
     }
-    
-    for(int i = 0; i < THREADS; ++i) {
-        pthread_join(handlers[i], NULL);
-    }
 
-    //Time and value checks
-    clock_t end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    
+    //Time and value checks    
     uint total_value = 0;
-    for(int i = 0; i < THREADS; ++i){
-        for(int j = 0; j < CELLS; ++j){
-            total_value += all_cells[i][j];
-        }
-        free(all_cells[i]);
-    }
-    free(all_cells);
+    uint previous_total_value = 0;
 
-    printf("Total value: %u \n", total_value);
-    printf("Time spent: %f \n", time_spent);
+    struct timespec begin, now;
+    clock_gettime(CLOCK_REALTIME, &begin);
+
+    //Check in an infinite loop if elapsed time is bigger than 1s
+    for(;;){
+        clock_gettime(CLOCK_REALTIME, &now);
+        double time_spent = (double)(now.tv_sec - begin.tv_sec);
+        if(time_spent > 1.0){
+            for(uint i = 0; i < THREADS; ++i){
+                for(uint j = 0; j < CELLS; ++j){
+                    total_value += all_cells[i][j];
+                }
+            }        
+
+            printf("Number of transactions after 1s: %u \n", (total_value - previous_total_value));
+
+            previous_total_value = total_value;
+            total_value = 0;
+            clock_gettime(CLOCK_REALTIME, &begin);
+        }
+        
+    }
 }
