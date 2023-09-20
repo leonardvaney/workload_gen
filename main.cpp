@@ -3,16 +3,15 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define THREADS 8
-#define CELLS_POWER 20
+#define THREADS 2
+#define CELLS_POWER 25
 #define CELLS (1 << CELLS_POWER)
 #define TRANSACTION_SET_SIZE 10000
 
 
 struct coroutine_args {
-    uint thread_number;
     uint* transaction_set;
-    uint** cells;
+    uint* cells;
     };
 
 void* execute_workload(void* transaction_args) {
@@ -20,7 +19,7 @@ void* execute_workload(void* transaction_args) {
     
     for(uint i = 0;; ++i){
         uint cell = args->transaction_set[i%TRANSACTION_SET_SIZE];
-        args->cells[args->thread_number][cell] += 1;
+        args->cells[cell] += 1;
     }
 }
  
@@ -29,6 +28,7 @@ int main() {
 
     pthread_t handlers[THREADS];
     coroutine_args args[THREADS];
+    uint** transaction = (uint**)malloc(sizeof(uint*) * THREADS);
     uint** all_cells = (uint**)malloc(sizeof(uint*) * THREADS);
     srand((unsigned)time(NULL));
 
@@ -40,23 +40,19 @@ int main() {
         }
     }
 
-    for(uint i = 0; i < THREADS; ++i) {
-        for(uint j = 0; j < CELLS; ++j){
-            all_cells[i][j] = 0;
-        }
-    }
-
     //Init transaction set
-    uint transaction[TRANSACTION_SET_SIZE];
-    for(uint i = 0; i < TRANSACTION_SET_SIZE; ++i){
-        uint random_value = rand();
-        uint cell_number = random_value%CELLS;
-        transaction[i] = cell_number;
+    for(uint i = 0; i < THREADS; ++i){
+        transaction[i] = (uint*)malloc(sizeof(uint) * TRANSACTION_SET_SIZE);
+        for(uint j = 0; j < TRANSACTION_SET_SIZE; ++j){
+            uint random_value = rand();
+            uint cell_number = random_value%CELLS;
+            transaction[i][j] = cell_number;
+        }
     }
 
     //Thread creation
     for(uint i = 0; i < THREADS; ++i) {
-        args[i] = { i, transaction, all_cells };        
+        args[i] = { transaction[i], all_cells[i] };        
         pthread_create(&handlers[i], NULL, execute_workload, (void*)&args[i]);
     }
 
@@ -71,7 +67,7 @@ int main() {
     for(;;){
         clock_gettime(CLOCK_REALTIME, &now);
         double time_spent = (double)(now.tv_sec - begin.tv_sec);
-        if(time_spent > 1.0){
+        if(time_spent >= 1.0){
             for(uint i = 0; i < THREADS; ++i){
                 for(uint j = 0; j < CELLS; ++j){
                     total_value += all_cells[i][j];
