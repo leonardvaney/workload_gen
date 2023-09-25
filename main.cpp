@@ -4,6 +4,7 @@
 #include <time.h>
 #include <malloc.h>
 #include <unistd.h>
+#include <stdint.h>
 
 //#define THREADS 2
 //#define CELLS_POWER 25
@@ -13,7 +14,7 @@
 
 struct coroutine_args {
     uint transaction_set_size;
-    unsigned long* transaction_set;
+    size_t* transaction_set;
     uint* cells;
     };
 
@@ -27,8 +28,8 @@ void* execute_workload(void* transaction_args) {
     struct timespec begin, now;
     clock_gettime(CLOCK_REALTIME, &begin);
 
-    for(uint i = 0;; ++i){
-        uint cell = args->transaction_set[i%args->transaction_set_size];
+    for(size_t i = 0;; ++i){
+        size_t cell = args->transaction_set[i%args->transaction_set_size];
         args->cells[cell] += 1;
         
         /*total_value += 1;
@@ -57,21 +58,21 @@ int main(int argc, char **argv) {
     }
 
     const uint threads = atoi(argv[1]);
-    const uint cells_size = atoi(argv[2])/threads;
+    const size_t cells_size = atol(argv[2])/threads;
     const uint transaction_set_size = atoi(argv[3])/threads;
     
 
     pthread_t handlers[threads];
     coroutine_args args[threads];
-    unsigned long** transaction = (unsigned long**)malloc(sizeof(unsigned long*) * threads);
+    size_t** transaction = (size_t**)malloc(sizeof(size_t*) * threads);
     uint** all_cells = (uint**)malloc(sizeof(uint*) * threads);
     srand((unsigned)time(NULL));
 
     //Init memory
     for(uint i = 0; i < threads; ++i){
         all_cells[i] = (uint*)malloc(sizeof(uint) * cells_size);
-        for(uint j = 0; j < cells_size; ++j){
-            all_cells[i][j] = 0;
+        for(size_t j = 0; j < cells_size; ++j){
+            all_cells[i][j] = 1;
         }
     }
 
@@ -79,10 +80,11 @@ int main(int argc, char **argv) {
 
     //Init transaction set
     for(uint i = 0; i < threads; ++i){
-        transaction[i] = (unsigned long*)malloc(sizeof(unsigned long) * transaction_set_size);
+        transaction[i] = (size_t*)malloc(sizeof(size_t) * transaction_set_size);
         for(uint j = 0; j < transaction_set_size; ++j){
-            uint random_value = rand();
-            uint cell_number = random_value%cells_size;
+            size_t random_value = rand();
+            double r = (double)random_value;
+            size_t cell_number = (size_t)((r / RAND_MAX) * cells_size);
             transaction[i][j] = cell_number;
         }
     }
