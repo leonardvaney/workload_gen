@@ -2,6 +2,8 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <time.h>
+#include <malloc.h>
+#include <unistd.h>
 
 //#define THREADS 2
 //#define CELLS_POWER 25
@@ -11,16 +13,37 @@
 
 struct coroutine_args {
     uint transaction_set_size;
-    uint* transaction_set;
+    unsigned long* transaction_set;
     uint* cells;
     };
 
 void* execute_workload(void* transaction_args) {
     struct coroutine_args* args = (struct coroutine_args*)transaction_args;
-    
+
+    //Time and value checks    
+    uint total_value = 0;
+    uint previous_total_value = 0;
+
+    struct timespec begin, now;
+    clock_gettime(CLOCK_REALTIME, &begin);
+
     for(uint i = 0;; ++i){
         uint cell = args->transaction_set[i%args->transaction_set_size];
         args->cells[cell] += 1;
+        
+        /*total_value += 1;
+
+        //Check if elapsed time is bigger than 1s
+        clock_gettime(CLOCK_REALTIME, &now);
+        double time_spent = (double)(now.tv_sec - begin.tv_sec);
+        if(time_spent >= 2.0){        
+
+            printf("Number of transactions after 1s: %u \n", (total_value - previous_total_value));
+
+            previous_total_value = total_value;
+            total_value = 0;
+            clock_gettime(CLOCK_REALTIME, &begin);    
+        }*/
     }
 }
  
@@ -32,14 +55,15 @@ int main(int argc, char **argv) {
         printf("Need 3 args");
         return 0;
     }
+
     const uint threads = atoi(argv[1]);
-    const uint cells_size = atoi(argv[2]);
-    const uint transaction_set_size = atoi(argv[3]);
+    const uint cells_size = atoi(argv[2])/threads;
+    const uint transaction_set_size = atoi(argv[3])/threads;
     
 
     pthread_t handlers[threads];
     coroutine_args args[threads];
-    uint** transaction = (uint**)malloc(sizeof(uint*) * threads);
+    unsigned long** transaction = (unsigned long**)malloc(sizeof(unsigned long*) * threads);
     uint** all_cells = (uint**)malloc(sizeof(uint*) * threads);
     srand((unsigned)time(NULL));
 
@@ -51,9 +75,11 @@ int main(int argc, char **argv) {
         }
     }
 
+    printf("%lu \n", threads * malloc_usable_size(all_cells[0]));
+
     //Init transaction set
     for(uint i = 0; i < threads; ++i){
-        transaction[i] = (uint*)malloc(sizeof(uint) * transaction_set_size);
+        transaction[i] = (unsigned long*)malloc(sizeof(unsigned long) * transaction_set_size);
         for(uint j = 0; j < transaction_set_size; ++j){
             uint random_value = rand();
             uint cell_number = random_value%cells_size;
@@ -68,14 +94,16 @@ int main(int argc, char **argv) {
     }
 
     //Time and value checks    
-    uint total_value = 0;
+    /*uint total_value = 0;
     uint previous_total_value = 0;
 
     struct timespec begin, now;
-    clock_gettime(CLOCK_REALTIME, &begin);
+    clock_gettime(CLOCK_REALTIME, &begin);*/
 
+
+    sleep(100000);
     //Check in an infinite loop if elapsed time is bigger than 1s
-    for(;;){
+    /*for(;;){
         clock_gettime(CLOCK_REALTIME, &now);
         double time_spent = (double)(now.tv_sec - begin.tv_sec);
         if(time_spent >= 1.0){
@@ -92,5 +120,5 @@ int main(int argc, char **argv) {
             clock_gettime(CLOCK_REALTIME, &begin);
         }
         
-    }
+    }*/
 }
