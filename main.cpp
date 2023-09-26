@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
@@ -5,11 +6,6 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <stdint.h>
-
-//#define THREADS 2
-//#define CELLS_POWER 25
-//#define CELLS (1 << CELLS_POWER)
-//#define TRANSACTION_SET_SIZE 10000
 
 
 struct coroutine_args {
@@ -47,19 +43,38 @@ void* execute_workload(void* transaction_args) {
         }*/
     }
 }
+
+void server_receive(int sockfd, void* buffer, size_t buffer_size){
+    size_t total_read = 0;
+    size_t block = 0; 
+    char* new_buffer = (char*)buffer;
+
+    while(total_read != buffer_size){
+        new_buffer = new_buffer + block;
+        block = read(sockfd, (void*)new_buffer, buffer_size);
+        total_read += block;
+        printf("read: %ld \n", total_read);
+    }
+}
+
+void client_send(int sockfd, void* buffer, size_t buffer_size){
+    int x = write(sockfd, buffer, buffer_size);
+    printf("write: %d \n", x);
+}
  
 
 int main(int argc, char **argv) {
 
     //Extract command line arguments
-    if(argc != 4){
-        printf("Need 3 args");
+    if(argc != 5){
+        printf("Need 4 args");
         return 0;
     }
 
     const uint threads = atoi(argv[1]);
     const size_t cells_size = atol(argv[2])/threads;
     const uint transaction_set_size = atoi(argv[3])/threads;
+    const uint is_serv = atoi(argv[4]);
     
 
     pthread_t handlers[threads];
@@ -72,7 +87,7 @@ int main(int argc, char **argv) {
     for(uint i = 0; i < threads; ++i){
         all_cells[i] = (uint*)malloc(sizeof(uint) * cells_size);
         for(size_t j = 0; j < cells_size; ++j){
-            all_cells[i][j] = 1;
+            all_cells[i][j] = is_serv;
         }
     }
 
@@ -88,6 +103,76 @@ int main(int argc, char **argv) {
             transaction[i][j] = cell_number;
         }
     }
+
+    //Server
+    if(is_serv == 1){
+        int sockfd, connfd, len;
+        struct sockaddr_in servaddr, cli;
+    
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if(sockfd == -1){
+            printf("socket creation failed \n");
+        }
+
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+        servaddr.sin_port = htons(9999);
+    
+        if((bind(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) != 0){
+            printf("socket bind failed \n");
+        }
+    
+        if((listen(sockfd, 5)) != 0){
+            printf("listen failed \n");
+        }
+
+        len = sizeof(cli);
+    
+        connfd = accept(sockfd, (struct sockaddr*)&cli, (socklen_t*)&len);
+        if(connfd < 0){
+            printf("server accept failed \n");
+        }
+        else{
+            server_receive(connfd, all_cells[0], cells_size*threads*sizeof(uint));
+        }
+    }
+
+    //Client
+    if(is_serv == 0){
+        int sockfd, connfd;
+        struct sockaddr_in servaddr, cli;
+    
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if(sockfd == -1){
+            printf("socket creation failed \n");
+        }
+
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        servaddr.sin_port = htons(9999);
+    
+        if(connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0){
+            printf("connection with the server failed \n");
+        }
+        else{
+            client_send(sockfd, all_cells[0], cells_size*threads*sizeof(uint)); //Send all the array in one big chunk
+        }
+    }
+
+
+    for(size_t i = 0; i < cells_size; ++i){
+        printf("%u \n", all_cells[0][i]);
+    }
+
+
+    return 0;
+
+
+
+
+
+
+
 
     //Thread creation
     for(uint i = 0; i < threads; ++i) {
