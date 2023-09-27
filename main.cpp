@@ -6,9 +6,11 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <atomic>
 
 
 struct coroutine_args {
+    std::atomic_flag* flag;
     uint transaction_set_size;
     size_t* transaction_set;
     uint* cells;
@@ -25,13 +27,18 @@ void* execute_workload(void* transaction_args) {
     clock_gettime(CLOCK_REALTIME, &begin);
 
     for(size_t i = 0;; ++i){
+
+        while (args->flag->test_and_set()) {} //Spin in case of copy over internet
+
         size_t cell = args->transaction_set[i%args->transaction_set_size];
         args->cells[cell] += 1;
         
-        /*total_value += 1;
+        total_value += 1;
+
+        args->flag->clear();
 
         //Check if elapsed time is bigger than 1s
-        clock_gettime(CLOCK_REALTIME, &now);
+        /*clock_gettime(CLOCK_REALTIME, &now);
         double time_spent = (double)(now.tv_sec - begin.tv_sec);
         if(time_spent >= 2.0){        
 
@@ -51,9 +58,9 @@ void server_receive(int sockfd, void* buffer, size_t buffer_size){
 
     while(total_read != buffer_size){
         new_buffer = new_buffer + block;
-        block = read(sockfd, (void*)new_buffer, buffer_size);
+        block = read(sockfd, (void*)new_buffer, buffer_size - total_read);
         total_read += block;
-        printf("read: %ld \n", total_read);
+        printf("read: %ld vs buffer size: %ld \n", total_read, buffer_size);
     }
 }
 
@@ -81,13 +88,14 @@ int main(int argc, char **argv) {
     coroutine_args args[threads];
     size_t** transaction = (size_t**)malloc(sizeof(size_t*) * threads);
     uint** all_cells = (uint**)malloc(sizeof(uint*) * threads);
+    std::atomic_flag* flags_array = (std::atomic_flag*)malloc(sizeof(std::atomic_flag) * threads);
     srand((unsigned)time(NULL));
 
     //Init memory
     for(uint i = 0; i < threads; ++i){
         all_cells[i] = (uint*)malloc(sizeof(uint) * cells_size);
         for(size_t j = 0; j < cells_size; ++j){
-            all_cells[i][j] = is_serv;
+            all_cells[i][j] = 0;
         }
     }
 
@@ -104,6 +112,27 @@ int main(int argc, char **argv) {
         }
     }
 
+    //Init atomic flags
+    for(uint i = 0; i < threads; ++i){
+        flags_array[i].clear();
+    }
+
+
+    //Thread creation
+    for(uint i = 0; i < threads; ++i) {
+        args[i] = { flags_array+i, transaction_set_size, transaction[i], all_cells[i] };        
+        pthread_create(&handlers[i], NULL, execute_workload, (void*)&args[i]);
+    }
+
+
+    sleep(1);
+
+    //Claim all flags before moving forward
+    for(uint i = 0; i < threads; ++i){
+        while((flags_array+i)->test_and_set()) {}
+    }
+
+
     //Server
     if(is_serv == 1){
         int sockfd, connfd, len;
@@ -116,7 +145,7 @@ int main(int argc, char **argv) {
 
         servaddr.sin_family = AF_INET;
         servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-        servaddr.sin_port = htons(9999);
+        servaddr.sin_port = htons(9998);
     
         if((bind(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) != 0){
             printf("socket bind failed \n");
@@ -133,8 +162,12 @@ int main(int argc, char **argv) {
             printf("server accept failed \n");
         }
         else{
-            server_receive(connfd, all_cells[0], cells_size*threads*sizeof(uint));
+            for(int i = 0; i < threads; ++i){
+                server_receive(connfd, all_cells[i], cells_size*sizeof(uint));
+            }
         }
+
+        close(sockfd);
     }
 
     //Client
@@ -149,36 +182,39 @@ int main(int argc, char **argv) {
 
         servaddr.sin_family = AF_INET;
         servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-        servaddr.sin_port = htons(9999);
+        servaddr.sin_port = htons(9998);
     
         if(connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0){
             printf("connection with the server failed \n");
         }
         else{
-            client_send(sockfd, all_cells[0], cells_size*threads*sizeof(uint)); //Send all the array in one big chunk
+            for(int i = 0; i < threads; ++i){
+                client_send(sockfd, all_cells[i], cells_size*sizeof(uint));
+            }
+        }
+
+        close(sockfd);
+    }
+
+
+
+
+    for(uint i = 0; i < threads; ++i){
+        for(size_t j = 0; j < cells_size; ++j){
+            printf("%u \n", all_cells[i][j]);
         }
     }
 
-
-    for(size_t i = 0; i < cells_size; ++i){
-        printf("%u \n", all_cells[0][i]);
+    //Release all flags
+    for(uint i = 0; i < threads; ++i){
+        (flags_array+i)->clear();
     }
-
+    
 
     return 0;
 
 
 
-
-
-
-
-
-    //Thread creation
-    for(uint i = 0; i < threads; ++i) {
-        args[i] = { transaction_set_size, transaction[i], all_cells[i] };        
-        pthread_create(&handlers[i], NULL, execute_workload, (void*)&args[i]);
-    }
 
     //Time and value checks    
     /*uint total_value = 0;
@@ -188,7 +224,6 @@ int main(int argc, char **argv) {
     clock_gettime(CLOCK_REALTIME, &begin);*/
 
 
-    sleep(100000);
     //Check in an infinite loop if elapsed time is bigger than 1s
     /*for(;;){
         clock_gettime(CLOCK_REALTIME, &now);
