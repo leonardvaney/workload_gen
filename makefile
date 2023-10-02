@@ -1,10 +1,27 @@
-PROGRAM = workload
+PROGRAM := workload
+SRC_DIR := source
+OBJ_DIR := obj
 
-$(PROGRAM) : main.o
-	g++ main.o -o $(PROGRAM)
+SRC := $(wildcard $(SRC_DIR)/*.cpp)
+OBJ := $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
-main.o : main.cpp
-	g++ -c main.cpp -lpthread
+CPPFLAGS := -Iinclude -MMD -MP
+LDLIBS := -lpthread
+
+.PHONY: all clean
+
+all: $(PROGRAM)
+
+$(PROGRAM) : $(OBJ)
+	g++ $^ $(LDLIBS) -o $@
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+	g++ $(CPPFLAGS) -c $< -o $@
+
+$(OBJ_DIR):
+	mkdir -p $@
 	
 clean:
-	rm *.o $(PROGRAM)
+	@$(RM) -rv $(OBJ_DIR) $(PROGRAM)
+	
+-include $(OBJ:.o=.d)
