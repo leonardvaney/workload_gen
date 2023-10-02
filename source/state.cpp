@@ -2,7 +2,7 @@
 
 void init_state(){
     cells = (uint32_t*)malloc(sizeof(uint32_t) * STATE_SIZE);
-    for(uint32_t i = 0; i < STATE_SIZE; i){
+    for(uint64_t i = 0; i < STATE_SIZE; ++i){
         cells[i] = 0;
     }
 }

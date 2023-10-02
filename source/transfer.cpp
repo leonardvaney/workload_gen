@@ -22,6 +22,7 @@ void init_server(){
 
     int len = sizeof(cli);
 
+    printf("Wait for a connection\n");
     connfd = accept(sockfd, (struct sockaddr*)&cli, (socklen_t*)&len);
     if(connfd < 0){
         printf("server accept failed \n");

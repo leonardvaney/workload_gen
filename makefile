@@ -5,7 +5,7 @@ OBJ_DIR := obj
 SRC := $(wildcard $(SRC_DIR)/*.cpp)
 OBJ := $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
-CPPFLAGS := -Iinclude -MMD -MP
+CPPFLAGS := -Iinclude -MMD -MP -DLOCAL
 LDLIBS := -lpthread
 
 .PHONY: all clean
@@ -13,10 +13,10 @@ LDLIBS := -lpthread
 all: $(PROGRAM)
 
 $(PROGRAM) : $(OBJ)
-	g++ $^ $(LDLIBS) -o $@
+	g++ $^ -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	g++ $(CPPFLAGS) -c $< -o $@
+	g++ $(CPPFLAGS) $(LDLIBS) -c $< -o $@
 
 $(OBJ_DIR):
 	mkdir -p $@

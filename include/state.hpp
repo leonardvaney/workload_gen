@@ -5,7 +5,11 @@
 #include <malloc.h>
 #include <pthread.h>
 
+#ifdef LOCAL
 #define STATE_SIZE 100000
+#else
+#define STATE_SIZE 16000000000
+#endif
 
 typedef uint64_t addr_t;
 

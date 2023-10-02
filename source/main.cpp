@@ -13,7 +13,7 @@
 #include <transfer.hpp>
 
 
-pthread_mutex_t lock;
+static pthread_mutex_t lock;
 
 void* generator_coroutine(void* args){
     batch_t batch = generate_batch();
@@ -44,19 +44,18 @@ int main(int argc, char **argv) {
 
     if(!is_serv){
         pthread_create(&generator, NULL, generator_coroutine, NULL);
-    }
 
-    sleep(2);
+        printf("Wait 2 sec\n");
+        sleep(2);
 
-    if(is_serv){
-        init_server();
-        pthread_mutex_lock(&lock);
-        receive_state();
-    }
-    else{
         init_client();
         pthread_mutex_lock(&lock);
         send_state();
+    }
+    else{
+        init_server();
+        pthread_mutex_lock(&lock);
+        receive_state();
     }
 
     pthread_mutex_unlock(&lock);
