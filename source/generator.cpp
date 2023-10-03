@@ -19,3 +19,16 @@ void execute_batch(batch_t* batch, uint32_t epoch){
         write_state(batch->addr[i], epoch);
     }
 }
+
+void* full_lock_generator(void* args){
+    pthread_mutex_t* lock = (pthread_mutex_t*)args;
+    batch_t batch = generate_batch();
+    uint32_t epoch = 0;
+    
+    for(;;){
+        pthread_mutex_lock(lock);
+        ++epoch;
+        execute_batch(&batch, epoch);
+        pthread_mutex_unlock(lock);
+    }
+} 

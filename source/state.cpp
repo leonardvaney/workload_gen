@@ -7,6 +7,10 @@ void init_state(){
     }
 }
 
+uint32_t* get_cells(){
+    return cells;
+}
+
 void write_state(addr_t addr, uint32_t value){
     cells[addr] = value;
 }

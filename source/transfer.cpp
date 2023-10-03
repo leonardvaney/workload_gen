@@ -47,14 +47,14 @@ void init_client(){
 }
 
 void send_state(){
-    int written = write(sockfd, cells, STATE_SIZE);
+    int written = write(sockfd, get_cells(), STATE_SIZE);
     printf("write: %d \n", written);
 }
 
 void receive_state(){
     size_t total_read = 0;
     size_t block = 0; 
-    char* new_buffer = (char*)cells;
+    char* new_buffer = (char*)get_cells();
 
     while(total_read != STATE_SIZE){
         new_buffer = new_buffer + block;

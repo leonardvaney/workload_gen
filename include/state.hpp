@@ -17,6 +17,8 @@ static uint32_t* cells;
 
 void init_state();
 
+uint32_t* get_cells();
+
 void write_state(addr_t addr, uint32_t value);
 
 uint32_t read_state(addr_t addr);
