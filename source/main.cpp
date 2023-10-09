@@ -34,6 +34,8 @@ void full_lock(){
 
         printf("Wait 5 sec\n");
         sleep(5);
+
+        //close_client();
     }
     else{
         init_server();
@@ -41,8 +43,9 @@ void full_lock(){
         receive_state();
 
         pthread_mutex_unlock(&lock);
-    }
 
+        //close_server();
+    }
 
 }
  

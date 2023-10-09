@@ -10,7 +10,7 @@ void init_server(){
 
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(9998);
+    servaddr.sin_port = htons(8887);
     
     if((bind(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) != 0){
         printf("socket bind failed \n");
@@ -39,7 +39,7 @@ void init_client(){
 
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    servaddr.sin_port = htons(9998);
+    servaddr.sin_port = htons(8887);
     
     if(connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0){
         printf("connection with the server failed \n");
@@ -51,9 +51,9 @@ void send_state(){
     size_t written = 0;
     char* new_buffer = (char*)get_cells();
 
-    while(total_written != STATE_SIZE){
+    while(total_written != STATE_SIZE*4){
         new_buffer = new_buffer + written;
-        written = write(sockfd, new_buffer, STATE_SIZE - total_written);
+        written = write(sockfd, new_buffer, STATE_SIZE*4 - total_written);
         total_written += written;
         printf("write: %ld \n", written);
     }
@@ -64,9 +64,9 @@ void receive_state(){
     size_t block = 0; 
     char* new_buffer = (char*)get_cells();
 
-    while(total_read != STATE_SIZE){
+    while(total_read != STATE_SIZE*4){
         new_buffer = new_buffer + block;
-        block = read(connfd, (void*)new_buffer, STATE_SIZE - total_read);
+        block = read(connfd, (void*)new_buffer, STATE_SIZE*4 - total_read);
         total_read += block;
         printf("read: %ld vs buffer size: %ld \n", total_read, STATE_SIZE);
 
