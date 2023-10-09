@@ -23,20 +23,26 @@ void full_lock(){
     if(!is_serv){
         pthread_create(&generator, NULL, full_lock_generator, &lock);
 
-        printf("Wait 2 sec\n");
-        sleep(2);
+        printf("Wait 5 sec\n");
+        sleep(5);
 
         init_client();
         pthread_mutex_lock(&lock);
         send_state();
+
+        pthread_mutex_unlock(&lock);
+
+        printf("Wait 5 sec\n");
+        sleep(5);
     }
     else{
         init_server();
         pthread_mutex_lock(&lock);
         receive_state();
+
+        pthread_mutex_unlock(&lock);
     }
 
-    pthread_mutex_unlock(&lock);
 
 }
  

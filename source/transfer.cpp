@@ -47,8 +47,16 @@ void init_client(){
 }
 
 void send_state(){
-    int written = write(sockfd, get_cells(), STATE_SIZE);
-    printf("write: %d \n", written);
+    size_t total_written = 0;
+    size_t written = 0;
+    char* new_buffer = (char*)get_cells();
+
+    while(total_written != STATE_SIZE){
+        new_buffer = new_buffer + written;
+        written = write(sockfd, new_buffer, STATE_SIZE - total_written);
+        total_written += written;
+        printf("write: %ld \n", written);
+    }
 }
 
 void receive_state(){
@@ -61,5 +69,9 @@ void receive_state(){
         block = read(connfd, (void*)new_buffer, STATE_SIZE - total_read);
         total_read += block;
         printf("read: %ld vs buffer size: %ld \n", total_read, STATE_SIZE);
+
+        if(block < 0){
+            //...check errno
+        }
     }
 }
