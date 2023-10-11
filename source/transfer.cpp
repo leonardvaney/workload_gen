@@ -59,6 +59,29 @@ void send_state(){
     }
 }
 
+void send_state_progressive_lock(pthread_mutex_t* state_locks){
+    size_t total_written = 0;
+    size_t written = 0;
+    uint32_t subpart_unlocked = 0;
+    char* new_buffer = (char*)get_cells();
+
+    while(total_written != STATE_SIZE*4){
+        new_buffer = new_buffer + written;
+        written = write(sockfd, new_buffer, STATE_SIZE*4 - total_written);
+        total_written += written;
+
+        //Handle progressive unlocking
+        uint32_t part_to_unlock = (total_written / 4) / STATE_SUBPART;
+        if(part_to_unlock > subpart_unlocked){
+            for(int i = subpart_unlocked; i < part_to_unlock; ++i){
+                pthread_mutex_unlock(&(state_locks[i]));
+            }
+        }
+
+        printf("write: %ld \n", written);
+    }
+}
+
 void receive_state(){
     size_t total_read = 0;
     size_t block = 0; 

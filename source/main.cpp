@@ -46,6 +46,37 @@ void full_lock(){
 
         //close_server();
     }
+}
+
+void progressive_lock(){
+    pthread_t generator;
+    pthread_mutex_t* state_locks = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t)*STATE_SUBPART);
+
+    for(size_t i = 0; i < STATE_SUBPART; ++i){
+        pthread_mutex_init(&(state_locks[i]), NULL);
+    }
+
+    if(!is_serv){
+        pthread_create(&generator, NULL, progressive_lock_generator, &state_locks);
+
+        printf("Wait 5 sec\n");
+        sleep(5);
+
+        init_client();
+        
+        for(size_t i = 0; i < STATE_SUBPART; ++i){
+            pthread_mutex_lock(&(state_locks[i]));
+        }
+
+        send_state_progressive_lock(state_locks);
+
+        printf("Wait 5 sec\n");
+        sleep(5);
+    }
+    else{
+        init_server();
+        receive_state();
+    }
 
 }
  
@@ -64,7 +95,8 @@ int main(int argc, char **argv) {
     init_state();
 
     //Implementation
-    full_lock();
+    //full_lock();
+    progressive_lock();
 
     return 0;
 }
