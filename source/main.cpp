@@ -50,9 +50,9 @@ void full_lock(){
 
 void progressive_lock(){
     pthread_t generator;
-    pthread_mutex_t* state_locks = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t)*STATE_SUBPART);
-
-    for(size_t i = 0; i < STATE_SUBPART; ++i){
+    pthread_mutex_t* state_locks = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t)*(STATE_SUBPART + 1)); //+ 1 to have a global lock
+    
+    for(size_t i = 0; i < STATE_SUBPART+1; ++i){
         pthread_mutex_init(&(state_locks[i]), NULL);
     }
 
@@ -63,10 +63,14 @@ void progressive_lock(){
         sleep(5);
 
         init_client();
+
+        pthread_mutex_lock(&(state_locks[STATE_SUBPART]));
         
         for(size_t i = 0; i < STATE_SUBPART; ++i){
             pthread_mutex_lock(&(state_locks[i]));
         }
+
+        pthread_mutex_unlock(&(state_locks[STATE_SUBPART]));
 
         send_state_progressive_lock(state_locks);
 

@@ -23,14 +23,14 @@
 
 typedef uint64_t addr_t;
 
-struct modified_subpart_t {
+/*struct modified_subpart_t {
     uint32_t* part_to_lock;
     uint32_t size;
-};
+};*/
 
 struct batch_t {
     addr_t* addr;
-    modified_subpart_t* subpart;
+    //modified_subpart_t* subpart;
 };
 
 static uint32_t* cells;

@@ -70,15 +70,18 @@ void send_state_progressive_lock(pthread_mutex_t* state_locks){
         written = write(sockfd, new_buffer, STATE_SIZE*4 - total_written);
         total_written += written;
 
+        printf("write: %ld \n", written);
+
         //Handle progressive unlocking
-        uint32_t part_to_unlock = (total_written / 4) / STATE_SUBPART;
+        uint32_t part_to_unlock = (total_written / 4) / (STATE_SIZE / STATE_SUBPART);
         if(part_to_unlock > subpart_unlocked){
             for(int i = subpart_unlocked; i < part_to_unlock; ++i){
                 pthread_mutex_unlock(&(state_locks[i]));
             }
+
+            subpart_unlocked = part_to_unlock;
         }
 
-        printf("write: %ld \n", written);
     }
 }
 
