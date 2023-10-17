@@ -1,12 +1,21 @@
 #include <generator.hpp>
 
 void generate_batch(batch_t* batch){
-
     batch->addr = (addr_t*)malloc(sizeof(addr_t)*BATCH_SIZE*NUMBER_OF_BATCH);
     for(uint32_t i = 0; i < BATCH_SIZE*NUMBER_OF_BATCH; ++i){
         size_t random_value = rand();
         double r = (double)random_value;
         size_t cell_number = (size_t)((r / RAND_MAX) * STATE_SIZE);
+        batch->addr[i] = cell_number;
+    }
+}
+
+void rw_lock_generate_batch(batch_t* batch){
+    batch->addr = (addr_t*)malloc(sizeof(addr_t)*BATCH_SIZE*NUMBER_OF_BATCH);
+    for(uint32_t i = 0; i < BATCH_SIZE*NUMBER_OF_BATCH; ++i){
+        size_t random_value = rand();
+        double r = (double)random_value;
+        size_t cell_number = (size_t)((r / RAND_MAX) * STATE_SIZE / 2);
         batch->addr[i] = cell_number;
     }
 }
@@ -143,4 +152,8 @@ void* progressive_lock_generator(void* args){
             elapsed = 0;
         }
     }
+}
+
+void* rw_lock_generator(void* args){
+
 }

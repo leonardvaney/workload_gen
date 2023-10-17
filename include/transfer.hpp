@@ -17,4 +17,8 @@ void send_state();
 
 void send_state_progressive_lock(pthread_mutex_t* state_locks);
 
+void send_state_rw_lock();
+
 void receive_state();
+
+void receive_state_rw_lock();

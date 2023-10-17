@@ -23,17 +23,13 @@
 
 typedef uint64_t addr_t;
 
-/*struct modified_subpart_t {
-    uint32_t* part_to_lock;
-    uint32_t size;
-};*/
-
 struct batch_t {
     addr_t* addr;
-    //modified_subpart_t* subpart;
 };
 
 static uint32_t* cells;
+
+static uint8_t rw_bit = 0; //0 = can rw on first half (ro on second), 1 = can rw on second half (ro on first)
 
 void init_state();
 
@@ -44,3 +40,9 @@ void write_state(addr_t addr, uint32_t value);
 uint32_t read_state(addr_t addr);
 
 void execute_batch(batch_t* batch, uint32_t epoch, uint32_t batch_index);
+
+void change_rw_bit();
+
+uint8_t get_rw_bit();
+
+void* copy_data(void* args);

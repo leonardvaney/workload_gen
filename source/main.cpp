@@ -81,7 +81,46 @@ void progressive_lock(){
         init_server();
         receive_state();
     }
+}
 
+void rw_lock(){
+    pthread_t generator, copy;
+    pthread_mutex_t* locks = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t)*2);
+
+    pthread_mutex_init(&(locks[0]), NULL); //Internal copy lock
+    pthread_mutex_init(&(locks[1]), NULL); //Send lock
+
+    if(!is_serv){
+        pthread_create(&generator, NULL, rw_lock_generator, &locks);
+
+        printf("Wait 5 sec\n");
+        sleep(5);
+
+        init_client();
+        
+        //pthread_mutex_lock(&(locks[0]));
+
+        change_rw_bit();
+        pthread_create(&copy, NULL, copy_data, &locks);
+        
+        send_state_rw_lock();
+
+        //pthread_mutex_unlock(&lock);
+
+        printf("Wait 5 sec\n");
+        sleep(5);
+
+        //close_client();
+    }
+    else{
+        init_server();
+        //pthread_mutex_lock(&lock);
+        receive_state_rw_lock();
+
+        //pthread_mutex_unlock(&lock);
+
+        //close_server();
+    }
 }
  
 int main(int argc, char **argv) {
@@ -100,7 +139,8 @@ int main(int argc, char **argv) {
 
     //Implementation
     //full_lock();
-    progressive_lock();
+    //progressive_lock();
+    rw_lock();
 
     return 0;
 }
