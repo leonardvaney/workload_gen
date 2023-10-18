@@ -94,10 +94,6 @@ void send_state_rw_lock(){
         new_buffer += STATE_SIZE*2; //On transfert la seconde moitié uniquement
     }
 
-    for(uint64_t i = 0; i < STATE_SIZE; ++i){
-        printf("%u \n", get_cells()[i]);
-    }
-
     while(total_written != STATE_SIZE*2){
         new_buffer = new_buffer + written;
         written = write(sockfd, new_buffer, STATE_SIZE*2 - total_written);
@@ -135,9 +131,5 @@ void receive_state_rw_lock(){
         block = read(connfd, (void*)new_buffer, STATE_SIZE*2 - total_read);
         total_read += block;
         printf("read: %ld vs buffer size: %ld \n", total_read, STATE_SIZE*2);
-    }
-
-    for(uint64_t i = 0; i < STATE_SIZE; ++i){
-        printf("%u \n", get_cells()[i]);
     }
 }

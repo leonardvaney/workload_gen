@@ -16,7 +16,6 @@ void rw_lock_generate_batch(batch_t* batch){
         size_t random_value = rand();
         double r = (double)random_value;
         size_t cell_number = (size_t)((r / RAND_MAX) * STATE_SIZE / 2);
-        printf("cell number: %u \n", cell_number);
         batch->addr[i] = cell_number;
     }
 }
