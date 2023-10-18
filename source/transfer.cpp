@@ -85,6 +85,27 @@ void send_state_progressive_lock(pthread_mutex_t* state_locks){
     }
 }
 
+void send_state_rw_lock(){
+    size_t total_written = 0;
+    size_t written = 0;
+    char* new_buffer = (char*)get_cells();
+
+    if(get_rw_bit() == 0){
+        new_buffer += STATE_SIZE*2; //On transfert la seconde moitié uniquement
+    }
+
+    for(uint64_t i = 0; i < STATE_SIZE; ++i){
+        printf("%u \n", get_cells()[i]);
+    }
+
+    while(total_written != STATE_SIZE*2){
+        new_buffer = new_buffer + written;
+        written = write(sockfd, new_buffer, STATE_SIZE*2 - total_written);
+        total_written += written;
+        printf("write: %ld \n", written);
+    }
+}
+
 void receive_state(){
     size_t total_read = 0;
     size_t block = 0; 
@@ -94,10 +115,29 @@ void receive_state(){
         new_buffer = new_buffer + block;
         block = read(connfd, (void*)new_buffer, STATE_SIZE*4 - total_read);
         total_read += block;
-        printf("read: %ld vs buffer size: %ld \n", total_read, STATE_SIZE);
+        printf("read: %ld vs buffer size: %ld \n", total_read, STATE_SIZE*4);
 
         if(block < 0){
             //...check errno
         }
+    }
+}
+
+void receive_state_rw_lock(){
+    size_t total_read = 0;
+    size_t block = 0; 
+    char* new_buffer = (char*)get_cells();
+
+    //A adapter si on veut gérer des scénarios plus complexes
+
+    while(total_read != STATE_SIZE*2){
+        new_buffer = new_buffer + block;
+        block = read(connfd, (void*)new_buffer, STATE_SIZE*2 - total_read);
+        total_read += block;
+        printf("read: %ld vs buffer size: %ld \n", total_read, STATE_SIZE*2);
+    }
+
+    for(uint64_t i = 0; i < STATE_SIZE; ++i){
+        printf("%u \n", get_cells()[i]);
     }
 }

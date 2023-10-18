@@ -4,7 +4,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define TRANSFER_PORT 8886
+#define TRANSFER_PORT 8888
 
 static int connfd;
 static int sockfd;

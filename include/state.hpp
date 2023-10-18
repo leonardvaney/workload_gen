@@ -6,7 +6,7 @@
 #include <pthread.h>
 
 #ifdef LOCAL
-#define STATE_SIZE 100000
+#define STATE_SIZE 1000
 #else
 #define STATE_SIZE 16000000000
 #endif
@@ -14,7 +14,7 @@
 #define STATE_SUBPART 10000
 
 #ifdef LOCAL
-#define BATCH_SIZE 1000
+#define BATCH_SIZE 100
 #else
 #define BATCH_SIZE 64000
 #endif
@@ -29,7 +29,7 @@ struct batch_t {
 
 static uint32_t* cells;
 
-static uint8_t rw_bit = 0; //0 = can rw on first half (ro on second), 1 = can rw on second half (ro on first)
+static uint8_t rw_bit = 1; //0 = can rw on first half (ro on second), 1 = can rw on second half (ro on first)
 
 void init_state();
 

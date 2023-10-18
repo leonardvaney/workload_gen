@@ -16,6 +16,7 @@ void rw_lock_generate_batch(batch_t* batch){
         size_t random_value = rand();
         double r = (double)random_value;
         size_t cell_number = (size_t)((r / RAND_MAX) * STATE_SIZE / 2);
+        printf("cell number: %u \n", cell_number);
         batch->addr[i] = cell_number;
     }
 }
@@ -36,6 +37,7 @@ void* full_lock_generator(void* args){
     pthread_mutex_t* lock = (pthread_mutex_t*)args;
     batch_t* batch = (batch_t*)malloc(sizeof(batch_t));
     generate_batch(batch);
+
     uint32_t epoch = 0;
     uint32_t n_batch = 0;
     struct timespec start, begin, now;
@@ -79,8 +81,8 @@ void* full_lock_generator(void* args){
 void* progressive_lock_generator(void* args){
     pthread_mutex_t* state_locks = *((pthread_mutex_t**)args);
     batch_t* batch = (batch_t*)malloc(sizeof(batch_t));
-
     generate_batch(batch);
+
     uint32_t epoch = 0;
     uint32_t n_batch = 0;
     struct timespec start, begin, now;
@@ -155,5 +157,46 @@ void* progressive_lock_generator(void* args){
 }
 
 void* rw_lock_generator(void* args){
+    pthread_mutex_t* copy_lock = (pthread_mutex_t*)args;
+    batch_t* batch = (batch_t*)malloc(sizeof(batch_t));
+    rw_lock_generate_batch(batch);
 
+    uint32_t epoch = 0;
+    uint32_t n_batch = 0;
+    struct timespec start, begin, now;
+    timespec* diff = (timespec*)malloc(sizeof(timespec));
+    double total_time, elapsed = 0;
+
+    clock_gettime(CLOCK_REALTIME, &start);
+
+    for(;;){
+
+        clock_gettime(CLOCK_REALTIME, &begin);
+
+        pthread_mutex_lock(copy_lock);
+        ++epoch;
+        execute_batch(batch, epoch, epoch%NUMBER_OF_BATCH);
+        pthread_mutex_unlock(copy_lock);
+
+        n_batch += 1;
+
+        clock_gettime(CLOCK_REALTIME, &now);
+
+        time_diff(start, now, diff);
+
+        double start_nsec_in_ms = ((double)diff->tv_nsec / 1000000);
+        double start_sec_in_ms = ((double)diff->tv_sec *1000);
+        total_time = start_sec_in_ms + start_nsec_in_ms;
+
+        time_diff(begin, now, diff);
+
+        double nsec_in_sec = ((double)diff->tv_nsec / 1000000000);
+        elapsed += (double)diff->tv_sec + nsec_in_sec;
+        
+        if(elapsed >= 1){
+            printf("%f: Speed: %f op/s \n", total_time, (n_batch*BATCH_SIZE) / elapsed);
+            n_batch = 0;
+            elapsed = 0;
+        }
+    }
 }
