@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <malloc.h>
 #include <pthread.h>
+#include <string.h>
 
 #ifdef LOCAL
 #define STATE_SIZE 1000

@@ -21,7 +21,7 @@ $(PROGRAM) : $(OBJ)
 	g++ $^ -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	g++ $(CPPFLAGS) $(LDLIBS) -c $< -o $@
+	g++ $(CPPFLAGS) $(LDLIBS) -c $< -o $@ -g3
 
 $(OBJ_DIR):
 	mkdir -p $@

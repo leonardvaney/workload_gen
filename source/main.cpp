@@ -87,7 +87,7 @@ void rw_lock(){
     pthread_t generator, copy;
     pthread_mutex_t copy_lock;
 
-    pthread_mutex_init(&(copy_lock), NULL); //Internal copy lock
+    pthread_mutex_init(&copy_lock, NULL); //Internal copy lock
 
     if(!is_serv){
         pthread_create(&generator, NULL, rw_lock_generator, &copy_lock);
@@ -97,9 +97,14 @@ void rw_lock(){
 
         init_client();
     
-        change_rw_bit();
+        uint8_t bit = get_rw_bit();
+
         pthread_create(&copy, NULL, copy_data, &copy_lock);
         
+        while(bit == get_rw_bit()){
+            //Wait for copy_data
+        }
+
         send_state_rw_lock();
 
         printf("Wait 5 sec\n");

@@ -1,6 +1,7 @@
 #include <state.hpp>
 
 void init_state(){
+    rw_bit = 0;
     cells = (uint32_t*)malloc(sizeof(uint32_t) * STATE_SIZE);
     for(uint64_t i = 0; i < STATE_SIZE; ++i){
         cells[i] = 0;
@@ -49,15 +50,14 @@ void* copy_data(void* args){
 
     pthread_mutex_lock(copy_lock);
 
+    change_rw_bit();
+
     if(rw_bit == 0){ //Transfer from second half to first half
-        for(uint64_t i = 0; i < STATE_SIZE / 2; ++i){
-            cells[i + (STATE_SIZE / 2)] = cells[i];
-        }
+        memcpy(cells, cells + (STATE_SIZE / 2), sizeof(*cells) * STATE_SIZE / 2 );
     }
     else{ //Transfer from first half to second half
-        for(uint64_t i = 0; i < STATE_SIZE / 2; ++i){
-            cells[i] = cells[i + (STATE_SIZE / 2)];
-        }
+        memcpy(cells + (STATE_SIZE / 2), cells, sizeof(*cells) * STATE_SIZE / 2);
     }
+
     pthread_mutex_unlock(copy_lock);
 }

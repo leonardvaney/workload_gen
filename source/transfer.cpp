@@ -10,7 +10,7 @@ void init_server(){
 
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(8887);
+    servaddr.sin_port = htons(TRANSFER_PORT);
     
     if((bind(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) != 0){
         printf("socket bind failed \n");
@@ -39,7 +39,7 @@ void init_client(){
 
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    servaddr.sin_port = htons(8887);
+    servaddr.sin_port = htons(TRANSFER_PORT);
     
     if(connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0){
         printf("connection with the server failed \n");
