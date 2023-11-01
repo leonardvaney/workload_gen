@@ -11,6 +11,7 @@
 #include <state.hpp>
 #include <generator.hpp>
 #include <transfer.hpp>
+#include <consensus.hpp>
 
 static int is_serv;
 
@@ -127,14 +128,50 @@ int main(int argc, char **argv) {
 
     is_serv = atoi(argv[1]);
 
-    srand((unsigned)time(NULL));
+    addr_node_t* node_list = (addr_node_t*)malloc(sizeof(addr_node_t) * 1);
 
-    init_state();
+    //Get nodes info
+    FILE* file;
+    char* line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    int count = 0;
+
+    file = fopen("nodes.txt", "r");
+    if (file == NULL){
+        printf("can't open file \n");
+        exit(EXIT_FAILURE);
+    }
+
+    while ((read = getline(&line, &len, file)) != -1) {
+        count += 1;
+        node_list = (addr_node_t*)realloc(node_list, sizeof(addr_node_t) * count);
+
+        int token_nbr = 0;
+        char *token = strtok(line, " ");
+        node_list[count-1].id = atoi(token);
+        token = strtok(NULL, " ");
+        node_list[count-1].ip = strdup(token);
+        token = strtok(NULL, " ");
+        node_list[count-1].port = atoi(token);
+    }
+
+    fclose(file);
+
+    /*for(int i = 0; i < count; ++i){
+        printf("node: %d %s %d \n", node_list[i].id, node_list[i].ip, node_list[i].port);
+    }*/
+
+    init_consensus(node_list, count);
+
+    //srand((unsigned)time(NULL));
+
+    //init_state();
 
     //Implementation
     //full_lock();
     //progressive_lock();
-    rw_lock();
+    //rw_lock();
 
     return 0;
 }

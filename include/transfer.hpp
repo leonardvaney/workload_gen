@@ -6,6 +6,12 @@
 
 #define TRANSFER_PORT 8891
 
+struct addr_node_t {
+    uint8_t id;
+    char* ip;
+    uint16_t port;
+};
+
 static int connfd;
 static int sockfd;
 
