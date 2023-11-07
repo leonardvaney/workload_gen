@@ -9,7 +9,8 @@ struct addr_node_t {
 };
 
 struct consensus_msg_t {
-    uint32_t epoch; //epoch to update or recover
+    batch_t batch; //batch to send
+    uint32_t epoch; //epoch to recover
     uint8_t recover; //1 if a node need to recover, 0 otherwise
     uint8_t id; //id of the node that need to recover
 };
