@@ -12,6 +12,7 @@
 #include <generator.hpp>
 #include <transfer.hpp>
 #include <consensus.hpp>
+#include <node.hpp>
 
 static int is_serv;
 
@@ -126,7 +127,8 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    is_serv = atoi(argv[1]);
+    //is_serv = atoi(argv[1]);
+    uint8_t node_id = atoi(argv[1]);
 
     addr_node_t* node_list = (addr_node_t*)malloc(sizeof(addr_node_t) * 1);
 
@@ -162,7 +164,12 @@ int main(int argc, char **argv) {
         printf("node: %d %s %d \n", node_list[i].id, node_list[i].ip, node_list[i].port);
     }*/
 
-    init_consensus(node_list, count);
+    if(node_id == 0){
+        init_consensus(node_list, count);
+    }
+    else{
+        init_node(node_id, node_list, count);
+    }
 
     //srand((unsigned)time(NULL));
 
