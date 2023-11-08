@@ -19,7 +19,7 @@ struct fifo_t {
 static uint8_t fifo_size;
 static fifo_t* fifo; 
 
-void init_fifo(uint8_t total_node); //Init one fifo for each id node
+void init_fifo(uint8_t total_node); //Init one fifo for each id node (minus the consensus one)
 
 void add_to_fifo(consensus_msg_t* msg); //Add a consensus msg to every fifo
 

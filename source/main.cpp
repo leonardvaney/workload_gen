@@ -164,10 +164,14 @@ int main(int argc, char **argv) {
         printf("node: %d %s %d \n", node_list[i].id, node_list[i].ip, node_list[i].port);
     }*/
 
+    printf("node id: %d \n", node_id);
+
     if(node_id == 0){
+        printf("init consensus \n");
         init_consensus(node_list, count);
     }
     else{
+        printf("init node \n");
         init_node(node_id, node_list, count);
     }
 

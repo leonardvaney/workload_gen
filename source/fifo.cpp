@@ -2,7 +2,7 @@
 
 void init_fifo(uint8_t total_node){
     //pthread_mutex_init(&fifo_lock, NULL);
-    fifo_size = total_node;
+    fifo_size = total_node - 1;
     fifo = (fifo_t*)malloc(sizeof(fifo_t)*fifo_size);
 
     //Init every fifo
@@ -48,6 +48,7 @@ void get_fifo_msg(uint8_t id, consensus_msg_t* result){
     pthread_mutex_lock(&fifo[id].lock);
 
     if(fifo[id].size_list == 0){
+        free(result); //Probablement dangereux...
         result = NULL; //No message in the list
     }
     else{
