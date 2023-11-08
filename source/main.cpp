@@ -13,6 +13,7 @@
 #include <transfer.hpp>
 #include <consensus.hpp>
 #include <node.hpp>
+#include <message.h>
 
 static int is_serv;
 
@@ -130,7 +131,7 @@ int main(int argc, char **argv) {
     //is_serv = atoi(argv[1]);
     uint8_t node_id = atoi(argv[1]);
 
-    addr_node_t* node_list = (addr_node_t*)malloc(sizeof(addr_node_t) * 1);
+    addr_node_t* n_list = (addr_node_t*)malloc(sizeof(addr_node_t) * 1);
 
     //Get nodes info
     FILE* file;
@@ -164,15 +165,18 @@ int main(int argc, char **argv) {
         printf("node: %d %s %d \n", node_list[i].id, node_list[i].ip, node_list[i].port);
     }*/
 
+    node_list = n_list;
+    total_node = count;
+
     printf("node id: %d \n", node_id);
 
     if(node_id == 0){
         printf("init consensus \n");
-        init_consensus(node_list, count);
+        init_consensus();
     }
     else{
         printf("init node \n");
-        init_node(node_id, node_list, count);
+        init_node(node_id);
     }
 
     //srand((unsigned)time(NULL));

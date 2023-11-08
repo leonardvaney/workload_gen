@@ -6,7 +6,7 @@ void send_batch(consensus_msg_t msg){
     add_to_fifo(copy); //Pas sûr que ça soit correct
 }
 
-void* open_client(void* args){
+void* open_client_consensus(void* args){
     uint8_t id = *((uint8_t*)args);
 
     struct sockaddr_in servaddr, cli;
@@ -36,8 +36,11 @@ void* open_client(void* args){
     }
 }
 
-void open_server(){
+void open_server_consensus(){
     //Init server side:
+
+    connfd_list_consensus = (int*)malloc(sizeof(int) * (total_node-1));
+
     struct sockaddr_in servaddr, cli;
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if(sockfd == -1){
@@ -64,27 +67,26 @@ void open_server(){
             printf("server accept failed \n");
         }
         else{
-            connfd_list[i] = connfd;
+            connfd_list_consensus[i] = connfd;
         }
     }
 }
 
-void* listen_server(void* args){
-    
+void* listen_server_consensus(void* args){
     size_t block = 0; 
     uint8_t id = *((uint8_t*)args);
     consensus_msg_t* msg;
 
     //Look for consensus_mgs_t (sign that someone need to recover)
     while(true){
-        block = read(connfd_list[id], (void*)msg, sizeof(consensus_msg_t));
+        block = read(connfd_list_consensus[id], (void*)msg, sizeof(consensus_msg_t));
 
         //MESSAGE A MODIFIER AVANT D'AJOUTER
         add_to_fifo(msg);
     }
 }
 
-void init_consensus(addr_node_t* list, uint8_t total){
+void init_consensus(){
     //1) crée des batch
     //2) ouvre un socket client side avec toutes les autres nodes
     //3) commence un thread qui ouvre un socket serveur pour intercepter les demandes de recover
@@ -111,9 +113,6 @@ void init_consensus(addr_node_t* list, uint8_t total){
 
     printf("batch ok \n");
 
-    node_list = list;
-    total_node = total;
-
     pthread_t* client;
     pthread_t* server;
     client = (pthread_t*)malloc(sizeof(pthread_t) * (total_node-1));
@@ -122,17 +121,17 @@ void init_consensus(addr_node_t* list, uint8_t total){
     //Create client threads
     for(int i = 0; i < total_node-1; ++i){
         uint8_t id = i;
-        pthread_create(&client[i], NULL, open_client, &id);
+        pthread_create(&client[i], NULL, open_client_consensus, &id);
     }
 
-    open_server();
+    open_server_consensus();
 
     printf("op server ok");
 
     //Create server threads
     for(int i = 0; i < total_node-1; ++i){
         uint8_t id = i;
-        pthread_create(&server[i], NULL, listen_server, &id);
+        pthread_create(&server[i], NULL, listen_server_consensus, &id);
     }
 
     //Loop on batch to send

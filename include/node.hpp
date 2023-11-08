@@ -1,6 +1,15 @@
 #pragma once
 
 #include <state.hpp>
-#include <message.hpp>
+#include <message.h>
 
-void init_node(uint8_t node_id, addr_node_t* list, uint8_t total);
+#include <arpa/inet.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+static uint8_t node_id;
+
+//Of size total_node - 1;
+static int* connfd_list_node;
+
+void init_node(uint8_t id);

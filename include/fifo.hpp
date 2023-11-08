@@ -1,12 +1,12 @@
 #pragma once
 
-#include <message.hpp>
+#include <message.h>
 
 #include <pthread.h>
 #include <stdint.h>
 
 //#define MAX_FIFO 256
-#define MAX_MSG_LIST 1000
+#define MAX_MSG_LIST 2
 
 struct fifo_t {
     consensus_msg_t* msg_list;

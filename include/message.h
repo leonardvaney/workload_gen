@@ -18,3 +18,6 @@ struct consensus_msg_t {
 struct hash_msg_t {
     //TO DEFINE
 };
+
+extern addr_node_t* node_list;
+extern uint8_t total_node;
