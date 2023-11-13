@@ -21,18 +21,27 @@ void* open_client_consensus(void* args){
     servaddr.sin_port = htons(node_list[id+1].port);
     
     while(connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0){
+        sleep(1);
         printf("connection with the node %d failed, retry \n", id+1);
     }
 
 
     //Get consensus_msg_t and send them
     while(true){
-        consensus_msg_t* msg; (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
+        
+        printf("Send msg to %d \n", id+1);
+        sleep(2);
+
+        int x = 10;
+
+        write(sockfd, &x, sizeof(int));
+        
+        /*consensus_msg_t* msg; (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
         get_fifo_msg(id, msg);
         if(msg != NULL){ //get_fifo_msg se charge de free si il renvoie un msg == NULL
             write(sockfd, msg, sizeof(consensus_msg_t));
             free(msg);
-        }
+        }*/
     }
 }
 
@@ -59,7 +68,7 @@ void open_server_consensus(){
     }
 
     int len = sizeof(cli);
-    printf("Wait for connections\n");
+    printf("Wait for connections \n");
 
     for(int i = 0; i < total_node-1; ++i){
         int connfd = accept(sockfd, (struct sockaddr*)&cli, (socklen_t*)&len);
@@ -82,7 +91,7 @@ void* listen_server_consensus(void* args){
         block = read(connfd_list_consensus[id], (void*)msg, sizeof(consensus_msg_t));
 
         //MESSAGE A MODIFIER AVANT D'AJOUTER
-        add_to_fifo(msg);
+        //add_to_fifo(msg);
     }
 }
 
@@ -106,7 +115,7 @@ void init_consensus(){
             size_t random_value = rand();
             double r = (double)random_value;
             size_t cell_number = (size_t)((r / RAND_MAX) * STATE_SIZE);
-            printf("i: %d, j: %d \n", i, j);
+            //printf("i: %d, j: %d \n", i, j);
             batch[i].addr[j] = cell_number;
         }
     }
@@ -118,28 +127,32 @@ void init_consensus(){
     client = (pthread_t*)malloc(sizeof(pthread_t) * (total_node-1));
     server = (pthread_t*)malloc(sizeof(pthread_t) * (total_node-1));
 
+    uint8_t* idd;
+
     //Create client threads
     for(int i = 0; i < total_node-1; ++i){
-        uint8_t id = i;
-        pthread_create(&client[i], NULL, open_client_consensus, &id);
+        idd = (uint8_t*)malloc(sizeof(uint8_t));
+        *idd = i;
+        pthread_create(&client[i], NULL, open_client_consensus, idd);
     }
 
     open_server_consensus();
 
-    printf("op server ok");
+    printf("op server ok \n");
 
     //Create server threads
     for(int i = 0; i < total_node-1; ++i){
-        uint8_t id = i;
-        pthread_create(&server[i], NULL, listen_server_consensus, &id);
+        idd = (uint8_t*)malloc(sizeof(uint8_t));
+        *idd = i;
+        pthread_create(&server[i], NULL, listen_server_consensus, idd);
     }
 
     //Loop on batch to send
     while (true)
     {
-        consensus_msg_t msg = {batch[epoch%NUMBER_OF_BATCH], epoch, 0, 0};
+        /*consensus_msg_t msg = {batch[epoch%NUMBER_OF_BATCH], epoch, 0, 0, 0};
         send_batch(msg);
-        epoch += 1;
+        epoch += 1;*/
     }
     
 }

@@ -8,6 +8,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+extern addr_node_t* node_list;
+extern uint8_t total_node; 
+
 //Of size total_node - 1;
 static int* connfd_list_consensus;
 //static int* sockfd_list;

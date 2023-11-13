@@ -15,6 +15,9 @@
 #include <node.hpp>
 #include <message.h>
 
+extern addr_node_t* node_list;
+extern uint8_t total_node;
+
 static int is_serv;
 
 void full_lock(){
@@ -165,10 +168,14 @@ int main(int argc, char **argv) {
         printf("node: %d %s %d \n", node_list[i].id, node_list[i].ip, node_list[i].port);
     }*/
 
-    node_list = n_list;
+    //node_list = n_list;
     total_node = count;
 
     printf("node id: %d \n", node_id);
+
+    /*for(int i = 0; i < total_node; ++i){
+        printf("%d \n", node_list[i]);
+    }*/
 
     if(node_id == 0){
         printf("init consensus \n");

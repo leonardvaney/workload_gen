@@ -12,7 +12,8 @@ struct consensus_msg_t {
     batch_t batch; //batch to send
     uint32_t epoch; //epoch to recover
     uint8_t recover; //1 if a node need to recover, 0 otherwise
-    uint8_t id; //id of the node that need to recover
+    uint8_t id_recover; //id of the node that need to recover
+    uint8_t id_sender; //id of the sender
 };
 
 struct hash_msg_t {

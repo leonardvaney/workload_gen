@@ -1,10 +1,14 @@
 #include <node.hpp>
 
+extern addr_node_t* node_list;
+extern uint8_t total_node; 
+
+
 void* open_client_node(void* args){
 
-    printf("init client \n");
-
     uint8_t id = *((uint8_t*)args);
+
+    //printf("init client %d \n", id);
 
     struct sockaddr_in servaddr, cli;
     
@@ -13,15 +17,21 @@ void* open_client_node(void* args){
         printf("socket creation failed \n");
     }
 
+    //printf("oui1 \n");
+
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = inet_addr(node_list[id].ip);
     servaddr.sin_port = htons(node_list[id].port);
+
+    //printf("oui2 \n");
     
     while(connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0){
-        printf("connection with the node %d failed, retry \n", id+1);
+        sleep(1);
+        printf("connection with the node %d failed, retry \n", id);
     }
 
 
+    printf("init connection with server %d ok \n", id);
     //Wait for 
     while(true){
         /*consensus_msg_t* msg; (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
@@ -36,9 +46,9 @@ void* open_client_node(void* args){
 void open_server_node(){
     //Init server side:
 
-    connfd_list_node = (int*)malloc(sizeof(int) * (total_node-1));
+    connfd_list_node = (int*)malloc(sizeof(int) * (total_node - 1));
 
-    struct sockaddr_in servaddr, cli;
+    struct sockaddr_in servaddr, cli, result;
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if(sockfd == -1){
         printf("socket creation failed \n");
@@ -60,11 +70,22 @@ void open_server_node(){
 
     for(int i = 0; i < total_node-1; ++i){
         int connfd = accept(sockfd, (struct sockaddr*)&cli, (socklen_t*)&len);
+        //printf("ip: %d, port: %d \n", cli.sin_addr.s_addr, cli.sin_port);
         if(connfd < 0){
             printf("server accept failed \n");
         }
         else{
-            connfd_list_node[i] = connfd;
+            //for(int j = 0; i < total_node; ++i){
+                //inet_pton(AF_INET, node_list[j].ip, &(result.sin_addr));
+                //printf("%d ?= %d && %d ?= %d \n", result.sin_addr.s_addr, cli.sin_addr.s_addr, htons(node_list[j].port), cli.sin_port);
+                //if(inet_addr(node_list[j].ip) == cli.sin_addr.s_addr && htons(node_list[j].port) == cli.sin_port){
+                //    printf("Will listen from client %d \n", node_list[j].id);
+                //    connfd_list_node[node_list[j].id] = connfd;
+                    connfd_list_node[i] = connfd;
+                //    break;
+                //}
+            //}
+            
         }
     }
 }
@@ -72,12 +93,18 @@ void open_server_node(){
 void* listen_server_node(void* args){
     size_t block = 0; 
     uint8_t id = *((uint8_t*)args);
-    consensus_msg_t* msg;
+    consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(int));
 
     //Look for consensus_mgs_t (sign that someone need to recover)
     while(true){
-        block = read(connfd_list_node[id], (void*)msg, sizeof(consensus_msg_t));
+        //block = read(connfd_list_node[id], (void*)msg, sizeof(consensus_msg_t));
 
+        block = read(connfd_list_node[id], (void*)msg, sizeof(int));
+
+
+        printf("id: %d , block: %d , error: %s \n", id, block, strerror(errno));
+
+        //sleep(1);
         //MESSAGE A MODIFIER AVANT D'AJOUTER
         //add_to_fifo(msg);
     }
@@ -99,26 +126,36 @@ void init_node(uint8_t id){
     client = (pthread_t*)malloc(sizeof(pthread_t) * (total_node-1));
     server = (pthread_t*)malloc(sizeof(pthread_t) * (total_node-1));
 
-    printf("ok \n");
-    printf("total node: %d \n", total_node);
+    uint8_t* idd;
+
+    //printf("ok \n");
+    //printf("total node: %d \n", total_node);
+    for(int i = 0; i < total_node; ++i){
+        printf("%d \n", htons(node_list[i].port));
+    }
 
     //Create client threads
     for(int i = 0; i < total_node-1; ++i){
-        printf("will create client thread \n");
-        uint8_t idd = i;
-        pthread_create(&client[i], NULL, open_client_node, &idd);
+        idd = (uint8_t*)malloc(sizeof(uint8_t));
+        *idd = i >= node_id ? i+1 : i;
+        printf("will create client thread %d \n", *idd);
+        pthread_create(&client[i], NULL, open_client_node, idd);
     }
+
+    printf("All client ok \n");
 
     open_server_node();
 
-    printf("op server ok");
+    printf("Open server ok \n");
 
     //Create server threads
     for(int i = 0; i < total_node-1; ++i){
-        uint8_t idd = i;
-        pthread_create(&server[i], NULL, listen_server_node, &idd);
+        idd = (uint8_t*)malloc(sizeof(uint8_t));
+        *idd = i;
+        pthread_create(&server[i], NULL, listen_server_node, idd);
     }
 
+    printf("Main thread sleep \n");
 
     sleep(100000000);
 }
