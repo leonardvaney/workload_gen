@@ -179,6 +179,7 @@ int main(int argc, char **argv) {
 
     if(node_id == 0){
         printf("init consensus \n");
+        init_fifo(total_node);
         init_consensus();
     }
     else{

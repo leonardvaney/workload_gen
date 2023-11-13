@@ -91,18 +91,25 @@ void open_server_node(){
 }
 
 void* listen_server_node(void* args){
-    size_t block = 0; 
+    size_t block = 0;
+    uint32_t epoch = 0;
     uint8_t id = *((uint8_t*)args);
-    consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(int));
+    consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
 
     //Look for consensus_mgs_t (sign that someone need to recover)
     while(true){
         //block = read(connfd_list_node[id], (void*)msg, sizeof(consensus_msg_t));
 
-        block = read(connfd_list_node[id], (void*)msg, sizeof(int));
+        block = read(connfd_list_node[id], (void*)msg, sizeof(consensus_msg_t));
 
-
-        printf("id: %d , block: %d , error: %s \n", id, block, strerror(errno));
+        /*for(int i = 0; i < 5; ++i){
+            printf("%d \n", msg->batch[i]);
+        }*/
+        printf("local epoch: %d, msg epoch: %d \n", epoch, msg->epoch);
+        if(msg->epoch == epoch){
+            printf("id: %d , block: %d , error: %s \n", id, block, strerror(errno));
+            ++epoch;
+        }
 
         //sleep(1);
         //MESSAGE A MODIFIER AVANT D'AJOUTER

@@ -1,9 +1,10 @@
 #include <consensus.hpp>
 
 void send_batch(consensus_msg_t msg){
-    consensus_msg_t* copy;
+    consensus_msg_t* copy = (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
     memcpy(copy, &msg, sizeof(consensus_msg_t));
     add_to_fifo(copy); //Pas sûr que ça soit correct
+    free(copy);
 }
 
 void* open_client_consensus(void* args){
@@ -29,19 +30,21 @@ void* open_client_consensus(void* args){
     //Get consensus_msg_t and send them
     while(true){
         
-        printf("Send msg to %d \n", id+1);
-        sleep(2);
+        //sleep(2);
 
-        int x = 10;
+        //consensus_msg_t message = {{1,1,1}, 1, 0, 0, 0};
 
-        write(sockfd, &x, sizeof(int));
+        //write(sockfd, &message, sizeof(consensus_msg_t));
         
-        /*consensus_msg_t* msg; (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
+        consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
+        //msg->epoch = 10;
         get_fifo_msg(id, msg);
+        //printf("msg: %p \n", msg);
         if(msg != NULL){ //get_fifo_msg se charge de free si il renvoie un msg == NULL
+            //printf("Send msg to %d \n", id+1);
             write(sockfd, msg, sizeof(consensus_msg_t));
             free(msg);
-        }*/
+        }
     }
 }
 
@@ -150,9 +153,14 @@ void init_consensus(){
     //Loop on batch to send
     while (true)
     {
-        /*consensus_msg_t msg = {batch[epoch%NUMBER_OF_BATCH], epoch, 0, 0, 0};
+        consensus_msg_t msg;
+        memcpy(msg.batch, batch[epoch%NUMBER_OF_BATCH].addr, sizeof(addr_t)*BATCH_SIZE);
+        msg.epoch = epoch;
+        msg.id_recover = 0;
+        msg.id_sender = 0;
+        msg.recover = 0;
         send_batch(msg);
-        epoch += 1;*/
+        epoch += 1;
     }
     
 }
