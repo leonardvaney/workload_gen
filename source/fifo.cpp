@@ -45,15 +45,17 @@ void add_to_fifo(consensus_msg_t* msg){
     }
 }
 
-void get_fifo_msg(uint8_t id, consensus_msg_t* result){
+int get_fifo_msg(uint8_t id, consensus_msg_t* result){
     pthread_mutex_lock(&fifo[id].lock);
 
     //printf("Will return fifo message \n");
+    int success = 0;
 
     if(fifo[id].size_list == 0){
         //printf("Empty fifo \n");
         //free(result); //Probablement dangereux...
-        result = NULL; //No message in the list
+        //result = NULL; //No message in the list
+        success = 0;
     }
     else{
         //printf("Not empty fifo \n");
@@ -67,9 +69,13 @@ void get_fifo_msg(uint8_t id, consensus_msg_t* result){
             fifo[id].msg_list[i] = fifo[id].msg_list[i+1];
         }
         fifo[id].size_list -= 1;
+
+        success = 1;
     }
 
     //printf("Return fifo message \n");
 
     pthread_mutex_unlock(&fifo[id].lock);
+
+    return success;
 }

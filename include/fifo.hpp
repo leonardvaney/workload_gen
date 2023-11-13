@@ -23,4 +23,4 @@ void init_fifo(uint8_t total_node); //Init one fifo for each id node (minus the 
 
 void add_to_fifo(consensus_msg_t* msg); //Add a consensus msg to every fifo
 
-void get_fifo_msg(uint8_t id, consensus_msg_t* result); //Store a copy of the oldest message from fifo number "id" in "result" and remove this message from the fifo
+int get_fifo_msg(uint8_t id, consensus_msg_t* result); //Store a copy of the oldest message from fifo number "id" in "result" and remove this message from the fifo

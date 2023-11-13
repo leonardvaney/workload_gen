@@ -26,6 +26,8 @@ void* open_client_consensus(void* args){
         printf("connection with the node %d failed, retry \n", id+1);
     }
 
+    int success = 0;
+    consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
 
     //Get consensus_msg_t and send them
     while(true){
@@ -36,14 +38,13 @@ void* open_client_consensus(void* args){
 
         //write(sockfd, &message, sizeof(consensus_msg_t));
         
-        consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
         //msg->epoch = 10;
-        get_fifo_msg(id, msg);
+        success = get_fifo_msg(id, msg);
         //printf("msg: %p \n", msg);
-        if(msg != NULL){ //get_fifo_msg se charge de free si il renvoie un msg == NULL
+        if(success == 1){ //get_fifo_msg se charge de free si il renvoie un msg == NULL
             //printf("Send msg to %d \n", id+1);
             write(sockfd, msg, sizeof(consensus_msg_t));
-            free(msg);
+            //free(msg);
         }
     }
 }
