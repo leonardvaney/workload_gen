@@ -1,7 +1,7 @@
 #include <fifo.hpp>
 
 void init_fifo(uint8_t total_node){
-    //pthread_mutex_init(&fifo_lock, NULL);
+    pthread_mutex_init(&fifo_lock, NULL);
     fifo_size = total_node - 1;
     fifo = (fifo_t*)malloc(sizeof(fifo_t)*fifo_size);
 
@@ -14,6 +14,7 @@ void init_fifo(uint8_t total_node){
 }
 
 void add_to_fifo(consensus_msg_t* msg){
+    pthread_mutex_lock(&fifo_lock);
     for(int i = 0; i < fifo_size; ++i){
         pthread_mutex_lock(&fifo[i].lock);
 
@@ -43,6 +44,7 @@ void add_to_fifo(consensus_msg_t* msg){
 
         pthread_mutex_unlock(&fifo[i].lock);
     }
+    pthread_mutex_unlock(&fifo_lock);
 }
 
 int get_fifo_msg(uint8_t id, consensus_msg_t* result){

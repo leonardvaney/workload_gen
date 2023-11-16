@@ -15,10 +15,40 @@
 #include <node.hpp>
 #include <message.h>
 
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <string>
+
 extern addr_node_t* node_list;
 extern uint8_t total_node;
 
 static int is_serv;
+
+/*std::string sha256(const std::string str){
+  unsigned char hash[SHA256_DIGEST_LENGTH];
+
+    uint32_t x = 0;
+    uint32_t y = 1;
+    uint32_t z = 2;
+
+  SHA256_CTX sha256;
+  SHA256_Init(&sha256);
+  for(int i = 0; i < 3; ++i){
+    //SHA256_Update(&sha256, &i, sizeof(uint32_t));
+  }
+  SHA256_Update(&sha256, &x, sizeof(uint32_t));
+  SHA256_Update(&sha256, &y, sizeof(uint32_t));
+  SHA256_Update(&sha256, &z, sizeof(uint32_t));
+  SHA256_Final(hash, &sha256);
+
+  std::stringstream ss;
+
+  for(int i = 0; i < SHA256_DIGEST_LENGTH; i++){
+    ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>( hash[i] );
+  }
+  return ss.str();
+}*/
 
 void full_lock(){
     pthread_t generator;
@@ -176,6 +206,12 @@ int main(int argc, char **argv) {
     /*for(int i = 0; i < total_node; ++i){
         printf("%d \n", node_list[i]);
     }*/
+
+
+
+    //std::cout << sha256("Terminal Root") << '\n';
+
+    //return 0;
 
     if(node_id == 0){
         printf("init consensus \n");

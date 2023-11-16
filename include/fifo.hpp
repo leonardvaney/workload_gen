@@ -14,7 +14,7 @@ struct fifo_t {
     pthread_mutex_t lock;
 };
 
-//static pthread_mutex_t fifo_lock;
+static pthread_mutex_t fifo_lock;
 
 static uint8_t fifo_size;
 static fifo_t* fifo; 

@@ -5,8 +5,8 @@ OBJ_DIR := obj
 SRC := $(wildcard $(SRC_DIR)/*.cpp)
 OBJ := $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
-CPPFLAGS := -Iinclude -MMD -MP
-LDLIBS := -lpthread
+CPPFLAGS := -Iinclude -I/usr/include/openssl/ -MMD -MP
+LDLIBS := -lcrypto -lpthread
 
 .PHONY: all clean
 
@@ -18,10 +18,10 @@ local: clean
 local: all
 
 $(PROGRAM) : $(OBJ)
-	g++ $^ -o $@
+	g++ $^ -o $@ $(LDLIBS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	g++ $(CPPFLAGS) $(LDLIBS) -c $< -o $@ -g3
+	g++ $(CPPFLAGS) -c $< -o $@ -g3
 
 $(OBJ_DIR):
 	mkdir -p $@

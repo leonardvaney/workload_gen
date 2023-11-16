@@ -94,6 +94,13 @@ void* listen_server_consensus(void* args){
     while(true){
         block = read(connfd_list_consensus[id], (void*)msg, sizeof(consensus_msg_t));
 
+        if(block > 0){
+            printf("Received recover request \n");
+            msg->epoch = 0;
+            msg->id_sender = 0;
+            add_to_fifo(msg);
+        }
+
         //MESSAGE A MODIFIER AVANT D'AJOUTER
         //add_to_fifo(msg);
     }

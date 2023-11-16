@@ -6,6 +6,8 @@
 #include <pthread.h>
 #include <string.h>
 
+#include <openssl/sha.h>
+
 #ifdef LOCAL
 #define STATE_SIZE 1000
 #else
@@ -47,3 +49,5 @@ void change_rw_bit();
 uint8_t get_rw_bit();
 
 void* copy_data(void* args);
+
+void hash_state_elements(uint64_t start, uint64_t end, unsigned char* result);

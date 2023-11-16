@@ -61,3 +61,20 @@ void* copy_data(void* args){
 
     pthread_mutex_unlock(copy_lock);
 }
+
+void hash_state_elements(uint64_t start, uint64_t end, unsigned char* result){
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+
+    if(rw_bit == 1){
+        SHA256_Update(&sha256, get_cells() + STATE_SIZE/2 + start, sizeof(uint32_t) * (end-start));
+    }
+    else{
+        SHA256_Update(&sha256, get_cells() + start, sizeof(uint32_t) * (end-start));
+    }
+
+    SHA256_Final(hash, &sha256);
+    memcpy(result, hash, sizeof(unsigned char) * SHA256_DIGEST_LENGTH);
+}
