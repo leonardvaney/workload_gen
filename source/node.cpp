@@ -39,6 +39,9 @@ void* open_client_node(void* args){
 
 
     printf("init connection with server %d ok \n", id);
+
+    write(sockfd, &node_id, sizeof(uint8_t));
+
     //Wait for 
     while(true){
         if(id == 0 && node_id == total_node - 1){ //If this is the thread assigned to the consensus node and this node is the last id node
@@ -48,7 +51,7 @@ void* open_client_node(void* args){
             consensus_msg_t msg;
             msg.epoch = 0;
             msg.id_recover = node_id;
-            msg.id_sender = node_id;
+            //msg.id_sender = node_id;
             msg.recover = 1;
             write(sockfd, &msg, sizeof(consensus_msg_t));
             break;
@@ -76,7 +79,7 @@ void* open_client_node(void* args){
                 printf("Send hash part %d \n", i);
 
                 memcpy(hash_msg->hash, hash_result, sizeof(unsigned char) * SHA256_DIGEST_LENGTH);
-                hash_msg->id_sender = node_id;
+                //hash_msg->id_sender = node_id;
                 hash_msg->state_part = 0;
                 write(sockfd, hash_msg, sizeof(hash_msg_t));
             }
@@ -150,18 +153,22 @@ void* listen_server_node(void* args){
     size_t block = 0;
     uint32_t epoch = 0;
     uint8_t id = *((uint8_t*)args);
+    uint8_t conn_node_id = 0;
     consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
     hash_msg_t* hash_msg = (hash_msg_t*)malloc(sizeof(hash_msg_t));
-    uint8_t sender_id = 0;
+    //uint8_t sender_id = 0;
     uint16_t state_part_pointer = 0;
+    //uint8_t hash_done = 0;
+
+    read(connfd_list_node[id], &conn_node_id, sizeof(uint8_t));
 
     //Look for consensus_msg_t (sign that someone need to recover)
     while(true){
-        block = read(connfd_list_node[id], (void*)&sender_id, sizeof(uint8_t));
+        //block = read(connfd_list_node[id], (void*)&sender_id, sizeof(uint8_t));
         //printf("sender id: %d \n", sender_id);
-        if(sender_id == 0){
+        if(conn_node_id == 0){
             //offsetof();
-            block = read(connfd_list_node[id], (void*)(msg)+1, sizeof(consensus_msg_t) - sizeof(uint8_t));
+            block = read(connfd_list_node[id], (void*)(msg), sizeof(consensus_msg_t));
             //msg->id_sender = sender_id;
             if(msg->epoch == epoch || (msg->epoch == 0 && msg->recover == 1)){
                 if(msg->recover == 1){ //Received a recover message from the consensus node
@@ -176,19 +183,17 @@ void* listen_server_node(void* args){
             }
         }
         else{ //Received a hash or a state part from a node
-            if(state_part_pointer < 2*((total_node-2)/3)+1){
+            if(state_part_pointer < 2*((total_node-2)/3)+1){ //Receive a hash
 
-                block = read(connfd_list_node[id], (void*)(hash_msg)+1, sizeof(hash_msg_t) - sizeof(uint8_t));
+                block = read(connfd_list_node[id], (void*)(hash_msg), sizeof(hash_msg_t));
 
                 printf("hash: %s \n", hash_msg->hash);
-                memcpy(hash_result[sender_id-1][state_part_pointer], hash_msg->hash, SHA256_DIGEST_LENGTH);
+                memcpy(hash_result[conn_node_id-1][state_part_pointer], hash_msg->hash, SHA256_DIGEST_LENGTH);
                 ++state_part_pointer;
             }
-            else{
-                
-
-
-                state_part_pointer = 0;
+            else{ //Receive a state part
+                //hash_done = 1
+                //state_part_pointer = 0;
             }
         }
 

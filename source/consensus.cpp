@@ -26,6 +26,9 @@ void* open_client_consensus(void* args){
         printf("connection with the node %d failed, retry \n", id+1);
     }
 
+    uint8_t x = 0;
+    write(sockfd, &x, sizeof(uint8_t));
+
     int success = 0;
     consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
 
@@ -88,7 +91,10 @@ void open_server_consensus(){
 void* listen_server_consensus(void* args){
     size_t block = 0; 
     uint8_t id = *((uint8_t*)args);
+    uint8_t conn_node_id = 0;
     consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
+
+    read(connfd_list_consensus[id], &conn_node_id, sizeof(uint8_t));
 
     //Look for consensus_mgs_t (sign that someone need to recover)
     while(true){
@@ -97,7 +103,6 @@ void* listen_server_consensus(void* args){
         if(block > 0){
             printf("Received recover request \n");
             msg->epoch = 0;
-            msg->id_sender = 0;
             msg->recover = 1;
             add_to_fifo(msg);
         }
@@ -166,7 +171,7 @@ void init_consensus(){
         memcpy(msg.batch, batch[epoch%NUMBER_OF_BATCH].addr, sizeof(addr_t)*BATCH_SIZE);
         msg.epoch = epoch;
         msg.id_recover = 0;
-        msg.id_sender = 0;
+        //msg.id_sender = 0;
         msg.recover = 0;
         send_batch(msg);
         epoch += 1;
