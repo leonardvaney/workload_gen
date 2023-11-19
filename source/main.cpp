@@ -220,6 +220,7 @@ int main(int argc, char **argv) {
     }
     else{
         printf("init node \n");
+        init_state();
         init_node(node_id);
     }
 

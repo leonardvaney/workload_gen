@@ -42,7 +42,8 @@ void* open_client_node(void* args){
     //Wait for 
     while(true){
         if(id == 0 && node_id == total_node - 1){ //If this is the thread assigned to the consensus node and this node is the last id node
-            sleep(5);
+            sleep(10);
+            printf("node_id recover: %d \n", node_id);
             switch_recover_mode(node_id);
             consensus_msg_t msg;
             msg.epoch = 0;
@@ -60,22 +61,32 @@ void* open_client_node(void* args){
 
             uint8_t t_value = (total_node-2)/3; //-2 because we also remove the consensus node
             unsigned char* hash_result = (unsigned char*)malloc(sizeof(unsigned char) * SHA256_DIGEST_LENGTH);
+            hash_msg_t* hash_msg = (hash_msg_t*)malloc(sizeof(hash_msg_t));
+
+            printf("Will send hash to node %d \n", id_recover);
 
             for(int i = 0; i < 2*t_value+1; ++i){
+
+                printf("test \n");
                 //Send hash here:
-                uint64_t start = (node_id-1) * ((STATE_SIZE/2) / (total_node-1));
+                uint64_t start = ((node_id-1) * ((STATE_SIZE/2) / (total_node-1)) + i*((STATE_SIZE/2) / (total_node-1))) % (STATE_SIZE/2);
                 uint64_t end = start + ((STATE_SIZE/2) / (total_node-1));
                 hash_state_elements(start, end, hash_result);
 
-                hash_msg_t hash_msg;
-                memcpy(hash_msg.hash, hash_result, sizeof(unsigned char) * SHA256_DIGEST_LENGTH);
-                hash_msg.id_sender = node_id;
-                write(sockfd, &hash_msg, sizeof(hash_msg));
+                printf("Send hash part %d \n", i);
+
+                memcpy(hash_msg->hash, hash_result, sizeof(unsigned char) * SHA256_DIGEST_LENGTH);
+                hash_msg->id_sender = node_id;
+                hash_msg->state_part = 0;
+                write(sockfd, hash_msg, sizeof(hash_msg_t));
             }
 
             for(int i = 0; i < t_value+1; ++i){
                 //Send state part here:
             }
+
+            //Reset recover mode
+            recover_mode = 0;
 
         }
         pthread_mutex_unlock(&node_lock);
@@ -142,7 +153,7 @@ void* listen_server_node(void* args){
     consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
     hash_msg_t* hash_msg = (hash_msg_t*)malloc(sizeof(hash_msg_t));
     uint8_t sender_id = 0;
-    uint16_t state_part_pointer;
+    uint16_t state_part_pointer = 0;
 
     //Look for consensus_msg_t (sign that someone need to recover)
     while(true){
@@ -152,9 +163,9 @@ void* listen_server_node(void* args){
             //offsetof();
             block = read(connfd_list_node[id], (void*)(msg)+1, sizeof(consensus_msg_t) - sizeof(uint8_t));
             //msg->id_sender = sender_id;
-            if(msg->epoch == epoch || (msg->epoch == 0 && msg->id_recover == 1)){
+            if(msg->epoch == epoch || (msg->epoch == 0 && msg->recover == 1)){
                 if(msg->recover == 1){ //Received a recover message from the consensus node
-                    printf("recover message received \n");
+                    printf("recover message received with id = %d \n", msg->id_recover);
                     switch_recover_mode(msg->id_recover);
                     break;
                 }
@@ -165,8 +176,10 @@ void* listen_server_node(void* args){
             }
         }
         else{ //Received a hash or a state part from a node
-            if(state_part_pointer == (total_node-2)/3){
+            if(state_part_pointer < 2*((total_node-2)/3)+1){
+
                 block = read(connfd_list_node[id], (void*)(hash_msg)+1, sizeof(hash_msg_t) - sizeof(uint8_t));
+
                 printf("hash: %s \n", hash_msg->hash);
                 memcpy(hash_result[sender_id-1][state_part_pointer], hash_msg->hash, SHA256_DIGEST_LENGTH);
                 ++state_part_pointer;

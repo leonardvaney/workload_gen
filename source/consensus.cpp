@@ -88,7 +88,7 @@ void open_server_consensus(){
 void* listen_server_consensus(void* args){
     size_t block = 0; 
     uint8_t id = *((uint8_t*)args);
-    consensus_msg_t* msg;
+    consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
 
     //Look for consensus_mgs_t (sign that someone need to recover)
     while(true){
@@ -98,6 +98,7 @@ void* listen_server_consensus(void* args){
             printf("Received recover request \n");
             msg->epoch = 0;
             msg->id_sender = 0;
+            msg->recover = 1;
             add_to_fifo(msg);
         }
 
