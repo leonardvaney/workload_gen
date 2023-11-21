@@ -18,7 +18,7 @@ struct consensus_msg_t {
 
 struct hash_msg_t {
     //uint8_t id_sender;
-    uint32_t state_part;
+    //uint32_t state_part;
     unsigned char hash[SHA256_DIGEST_LENGTH];
 }__attribute__((packed));
 

@@ -9,7 +9,7 @@
 #include <openssl/sha.h>
 
 #ifdef LOCAL
-#define STATE_SIZE 1000
+#define STATE_SIZE 200
 #else
 #define STATE_SIZE 16000000000
 #endif
@@ -33,6 +33,8 @@ struct batch_t {
 static uint32_t* cells;
 
 static uint8_t rw_bit = 1; //0 = can rw on first half (ro on second), 1 = can rw on second half (ro on first)
+
+static pthread_mutex_t transfer_lock;
 
 void init_state();
 
