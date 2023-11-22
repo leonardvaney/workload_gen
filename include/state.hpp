@@ -9,7 +9,7 @@
 #include <openssl/sha.h>
 
 #ifdef LOCAL
-#define STATE_SIZE 200
+#define STATE_SIZE 1400
 #else
 #define STATE_SIZE 16000000000
 #endif

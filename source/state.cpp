@@ -5,7 +5,7 @@ void init_state(){
     pthread_mutex_init(&transfer_lock, NULL);
     cells = (uint32_t*)malloc(sizeof(uint32_t) * STATE_SIZE);
     for(uint64_t i = 0; i < STATE_SIZE; ++i){
-        cells[i] = i;
+        cells[i] = 0;
     }
 }
 
@@ -47,9 +47,9 @@ uint8_t get_rw_bit(){
 }
 
 void* copy_data(void* args){
-    pthread_mutex_t* copy_lock = ((pthread_mutex_t*)args);
+    //pthread_mutex_t* copy_lock = ((pthread_mutex_t*)args);
 
-    pthread_mutex_lock(copy_lock);
+    //pthread_mutex_lock(copy_lock);
 
     change_rw_bit();
 
@@ -60,7 +60,7 @@ void* copy_data(void* args){
         memcpy(cells + (STATE_SIZE / 2), cells, sizeof(*cells) * STATE_SIZE / 2);
     }
 
-    pthread_mutex_unlock(copy_lock);
+    //pthread_mutex_unlock(copy_lock);
 }
 
 void hash_state_elements(uint64_t start, uint64_t end, unsigned char* result){
