@@ -18,6 +18,8 @@ void add_to_fifo(consensus_msg_t* msg){
     for(int i = 0; i < fifo_size; ++i){
         pthread_mutex_lock(&fifo[i].lock);
 
+        printf("Size list of %d : %d \n", i, fifo[i].size_list);
+
         if(fifo[i].size_list == MAX_MSG_LIST){
             
             //Certainement possible de faire mieux
@@ -39,7 +41,7 @@ void add_to_fifo(consensus_msg_t* msg){
         else{
             fifo[i].msg_list[fifo[i].size_list] = *msg;
             fifo[i].size_list += 1;
-            //printf("Add something to fifo \n");
+            printf("Add epoch %d to fifo \n", msg->epoch);
         }
 
         pthread_mutex_unlock(&fifo[i].lock);

@@ -70,6 +70,7 @@ void hash_state_elements(uint64_t start, uint64_t end, unsigned char* result){
     SHA256_Init(&sha256);
 
     //printf("test1 start: %d , end: %d \n", start, end);
+    //printf("rw_bit: %d \n", rw_bit);
 
     if(rw_bit == 1){
         SHA256_Update(&sha256, get_cells() + STATE_SIZE/2 + start, sizeof(uint32_t) * (end-start));

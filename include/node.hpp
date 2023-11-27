@@ -2,6 +2,7 @@
 
 #include <state.hpp>
 #include <message.h>
+#include <generator.hpp>
 
 #include <arpa/inet.h>
 #include <stdlib.h>
@@ -19,5 +20,9 @@ static int recover_mode; //0 if no recover, 1 if recover activated for an extern
 static uint8_t id_recover; //node that recover
 
 static unsigned char*** hash_result;
+
+static struct timespec start, begin, now;
+static timespec* diff;
+
 
 void init_node(uint8_t id);

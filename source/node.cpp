@@ -40,8 +40,9 @@ void* open_client_node(void* args){
     //Wait for 
     while(true){
         if(id == 0 && node_id == total_node - 1){ //If this is the thread assigned to the consensus node and this node is the last id node
-            sleep(10);
+            sleep(5);
             printf("node_id recover: %d \n", node_id);
+            clock_gettime(CLOCK_REALTIME, &start);
             switch_recover_mode(node_id);
             consensus_msg_t msg;
             msg.epoch = 0;
@@ -154,15 +155,26 @@ void* listen_server_node(void* args){
 
     read(connfd_list_node[id], &conn_node_id, sizeof(uint8_t));
 
+    printf("Receive from %d \n", conn_node_id);
+
     //Look for consensus_msg_t (sign that someone need to recover)
     while(true){
         if(conn_node_id == 0){
             //offsetof();
-            block = read(connfd_list_node[id], (void*)(msg), sizeof(consensus_msg_t));
+            block = 0;
+            while(block != sizeof(consensus_msg_t)){
+                block += read(connfd_list_node[id], (void*)(msg) + block, sizeof(consensus_msg_t) - block);
+            }
+            printf("id: %d , epoch: %d , block: %d , error: %s \n", conn_node_id, msg->epoch, block, strerror(errno));
             //msg->id_sender = sender_id;
-            if(msg->epoch == epoch || (msg->epoch == 0 && msg->recover == 1) && msg->id_recover != node_id){
-                if(msg->recover == 1){ //Received a recover message from the consensus node
+            if(msg->epoch == 0 && msg->recover == 1){
+                //if(msg->recover == 1){ //Received a recover message from the consensus node
                     printf("recover message received with id = %d \n", msg->id_recover);
+                    
+                    if(node_id == total_node-1){
+                        return NULL;
+                    }
+
                     copy_data(NULL);
                     /*for(int i = 0; i < STATE_SIZE; ++i){
                         printf("%d \n", read_state(i));
@@ -170,22 +182,25 @@ void* listen_server_node(void* args){
                     switch_recover_mode(msg->id_recover);
                     return NULL;
                 }
-                else{
+            else{
                     if(node_id == total_node-1){
-                        return NULL;
+                        //return NULL;
+                        continue; //Read batch but don't process them
                     }
                     batch_t batch = {msg->batch};
                     execute_batch(&batch, msg->epoch, 0);
-                    printf("id: %d , block: %d , error: %s \n", conn_node_id, block, strerror(errno));
                     ++epoch;
-                }
             }
+            //}
         }
         else{ //Received a hash or a state part from a node
             if(hash_state_pointer < 2*((total_node-2)/3)+1){ //Receive a hash
 
-                block = read(connfd_list_node[id], (void*)(hash_msg), sizeof(hash_msg_t));
-
+                block = 0;
+                while(block != sizeof(hash_msg_t)){
+                    block += read(connfd_list_node[id], (void*)(hash_msg)+block, sizeof(hash_msg_t)-block);
+                }
+                
                 printf("hash: %s \n", hash_msg->hash);
                 memcpy(hash_result[conn_node_id-1][hash_state_pointer], hash_msg->hash, SHA256_DIGEST_LENGTH);
                 ++hash_state_pointer;
@@ -201,30 +216,34 @@ void* listen_server_node(void* args){
                     uint32_t* pointeur_ro = get_rw_bit() == 1 ? get_cells() : get_cells() + STATE_SIZE/2; //Write temp value in read-only part as it is garbage value
                     uint32_t* pointeur_rw = get_rw_bit() == 0 ? get_cells() : get_cells() + STATE_SIZE/2; //Pointeur to the place that receive the final correct values
 
-                    printf("end = %d start = %d \n", end, start);
-                    while(block < sizeof(uint32_t)*(end-start)){
-                        block += read(connfd_list_node[id], pointeur_ro + start_for_id + block, sizeof(uint32_t)*(end-start));
+                    
+                    while(block != sizeof(uint32_t)*(end-start)){
+                        block += read(connfd_list_node[id], pointeur_ro + start_for_id + block, sizeof(uint32_t)*(end-start) - block);
                         //printf("block size: %d \n", block);
                     }
                     
                     hash_state_elements(start_for_id + offset, start_for_id + ((STATE_SIZE/2) / (total_node-1)) + offset, temp_hash);
-
-                    //printf("part hash: %s vs received hash: %s \n", temp_hash, hash_result[conn_node_id-1][state_part_pointer]);
                     
                     //BESOIN DE COMPARER DE MANIÈRE PLUS EXHAUSTIVE
                     if(strncmp((const char*)temp_hash, (const char*)hash_result[conn_node_id-1][state_part_pointer], SHA256_DIGEST_LENGTH) == 0){
                         printf("CORRECT HASH \n");
+                        printf("start = %d end = %d \n", start, end);
+                        printf("start hash: %d , end hash: %d \n", start + offset, offset + start + ((STATE_SIZE/2) / (total_node-1)));
+
                         memcpy(pointeur_rw + start_for_id + state_part_pointer*((STATE_SIZE/2) / (total_node-1)), pointeur_ro + start_for_id, sizeof(uint32_t)*(end-start)); //Src is always fixed, Dst depend on state_part_pointer
                     }
                     else{
                         printf("Hash are not equal \n");
+
+                        printf("start = %d end = %d \n", start, end);
+                        printf("start hash: %d , end hash: %d \n", start + offset, offset + start + ((STATE_SIZE/2) / (total_node-1)));
+                        printf("part hash: %s \n", temp_hash);
                     }
 
                     ++state_part_pointer;
                 }
                 else{
-                    printf("End of recover \n");
-                    //recover_mode = 0;
+
                     hash_state_pointer = 0;
                     state_part_pointer = 0;
 
@@ -234,7 +253,19 @@ void* listen_server_node(void* args){
                         /*for(int i = 0; i < STATE_SIZE; ++i){
                             printf("%d \n", read_state(i));
                         }*/
+
+                        printf("End of recover \n");
+                        //recover_mode = 0;
+
                         recover_mode = 0;
+                        clock_gettime(CLOCK_REALTIME, &now);
+
+                        time_diff(start, now, diff);
+
+                        double nsec_in_sec = ((double)diff->tv_nsec / 1000000000);
+                        double elapsed = (double)diff->tv_sec + nsec_in_sec;
+
+                        printf("Recovery time: %f \n",elapsed);
                     }
                     else{
                         ++recover_mode;
@@ -269,6 +300,8 @@ void init_node(uint8_t id){
     client = (pthread_t*)malloc(sizeof(pthread_t) * (total_node-1));
     server = (pthread_t*)malloc(sizeof(pthread_t) * (total_node-1));
     pthread_mutex_init(&node_lock, NULL);
+
+    diff = (timespec*)malloc(sizeof(timespec));
 
     //Init hash list for each possible incoming node
     uint32_t total_hash = 2*((total_node-2)/3)+1;
