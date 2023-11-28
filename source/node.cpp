@@ -213,12 +213,12 @@ void* listen_server_node(void* args){
                     uint64_t start = start_for_id + state_part_pointer*((STATE_SIZE/2) / (total_node-1)) % (STATE_SIZE/2);
                     uint64_t end = start + ((STATE_SIZE/2) / (total_node-1));
                     uint64_t offset = get_rw_bit() == 1 ? 0 : STATE_SIZE/2;
-                    uint32_t* pointeur_ro = get_rw_bit() == 1 ? get_cells() : get_cells() + STATE_SIZE/2; //Write temp value in read-only part as it is garbage value
-                    uint32_t* pointeur_rw = get_rw_bit() == 0 ? get_cells() : get_cells() + STATE_SIZE/2; //Pointeur to the place that receive the final correct values
+                    uint32_t* pointeur_ro = (get_rw_bit() == 1 ? get_cells() : get_cells() + STATE_SIZE/2); //Write temp value in read-only part as it is garbage value
+                    uint32_t* pointeur_rw = (get_rw_bit() == 0 ? get_cells() : get_cells() + STATE_SIZE/2); //Pointeur to the place that receive the final correct values
 
                     
                     while(block != sizeof(uint32_t)*(end-start)){
-                        block += read(connfd_list_node[id], pointeur_ro + start_for_id + block, sizeof(uint32_t)*(end-start) - block);
+                        block += read(connfd_list_node[id], (char*)(pointeur_ro + start_for_id) + block, sizeof(uint32_t)*(end-start) - block);
                         //printf("block size: %d \n", block);
                     }
                     
@@ -226,14 +226,15 @@ void* listen_server_node(void* args){
                     
                     //BESOIN DE COMPARER DE MANIÈRE PLUS EXHAUSTIVE
                     if(strncmp((const char*)temp_hash, (const char*)hash_result[conn_node_id-1][state_part_pointer], SHA256_DIGEST_LENGTH) == 0){
-                        printf("CORRECT HASH \n");
+                        printf("CORRECT HASH ID %d \n", conn_node_id);
                         printf("start = %d end = %d \n", start, end);
                         printf("start hash: %d , end hash: %d \n", start + offset, offset + start + ((STATE_SIZE/2) / (total_node-1)));
+                        printf("part hash: %s \n", temp_hash);
 
                         memcpy(pointeur_rw + start_for_id + state_part_pointer*((STATE_SIZE/2) / (total_node-1)), pointeur_ro + start_for_id, sizeof(uint32_t)*(end-start)); //Src is always fixed, Dst depend on state_part_pointer
                     }
                     else{
-                        printf("Hash are not equal \n");
+                        printf("Hash are not equal ID %d \n", conn_node_id);
 
                         printf("start = %d end = %d \n", start, end);
                         printf("start hash: %d , end hash: %d \n", start + offset, offset + start + ((STATE_SIZE/2) / (total_node-1)));
