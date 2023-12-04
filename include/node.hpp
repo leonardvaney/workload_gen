@@ -21,8 +21,11 @@ static uint8_t id_recover; //node that recover
 
 static unsigned char*** hash_result;
 
-static struct timespec start, begin, now;
-static timespec* diff;
+static struct timespec start_recover, now_recover;
+static timespec* diff_recover;
+
+static struct timespec start_batch, begin_batch, now_batch;
+static timespec* diff_batch;
 
 
 void init_node(uint8_t id);

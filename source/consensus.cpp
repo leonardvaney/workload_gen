@@ -131,7 +131,7 @@ void init_consensus(){
         for(uint32_t j = 0; j < BATCH_SIZE; ++j){
             size_t random_value = rand();
             double r = (double)random_value;
-            size_t cell_number = (size_t)((r / RAND_MAX) * STATE_SIZE);
+            size_t cell_number = (size_t)((r / RAND_MAX) * STATE_SIZE/2);
             //printf("i: %d, j: %d \n", i, j);
             batch[i].addr[j] = cell_number;
         }
@@ -167,14 +167,16 @@ void init_consensus(){
     //Loop on batch to send
     while (true)
     {
-        consensus_msg_t msg;
-        memcpy(msg.batch, batch[epoch%NUMBER_OF_BATCH].addr, sizeof(addr_t)*BATCH_SIZE);
-        msg.epoch = epoch;
-        msg.id_recover = 0;
-        //msg.id_sender = 0;
-        msg.recover = 0;
-        send_batch(msg);
-        epoch += 1;
+        //if(epoch < 100){
+            consensus_msg_t msg;
+            memcpy(msg.batch, batch[epoch%NUMBER_OF_BATCH].addr, sizeof(addr_t)*BATCH_SIZE);
+            msg.epoch = epoch;
+            msg.id_recover = 0;
+            //msg.id_sender = 0;
+            msg.recover = 0;
+            send_batch(msg);
+            epoch += 1;
+        //}
     }
     
 }
