@@ -61,6 +61,7 @@ void* copy_data(void* args){
     }
 
     //pthread_mutex_unlock(copy_lock);
+    return NULL;
 }
 
 void hash_state_elements(uint64_t start, uint64_t end, unsigned char* result){

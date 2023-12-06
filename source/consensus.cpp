@@ -174,6 +174,9 @@ void init_consensus(){
             msg.id_recover = 0;
             //msg.id_sender = 0;
             msg.recover = 0;
+            if(BATCH_WAIT != 0){
+                sleep(BATCH_WAIT);
+            }
             send_batch(msg);
             epoch += 1;
         //}

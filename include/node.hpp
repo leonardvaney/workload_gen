@@ -27,5 +27,11 @@ static timespec* diff_recover;
 static struct timespec start_batch, begin_batch, now_batch;
 static timespec* diff_batch;
 
+static struct timespec start_copy, begin_copy, now_copy;
+static timespec* diff_copy;
+
+static struct timespec start_transfert, begin_transfert, now_transfert;
+static timespec* diff_transfert;
+
 
 void init_node(uint8_t id);

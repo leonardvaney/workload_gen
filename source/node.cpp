@@ -57,13 +57,15 @@ void* open_client_node(void* args){
             //1) Need to send a hash of 2t+1 hash from 2t+1 state part (starting from part node_id)
             //2) Send t+1 state part (starting from part node_id)
 
+            clock_gettime(CLOCK_REALTIME, &start_transfert);
+
             size_t written = 0;
             uint8_t t_value = (total_node-2)/3; //-2 because we also remove the consensus node
             unsigned char* hash_result = (unsigned char*)malloc(sizeof(unsigned char) * SHA256_DIGEST_LENGTH);
             hash_msg_t* hash_msg = (hash_msg_t*)malloc(sizeof(hash_msg_t));
             uint32_t* pointeur = get_rw_bit() == 1 ? get_cells() : get_cells() + STATE_SIZE/2;
 
-            printf("Will send hash to node %d \n", id_recover);
+            //printf("Will send hash to node %d \n", id_recover);
 
             for(int i = 0; i < 2*t_value+1; ++i){
 
@@ -73,15 +75,15 @@ void* open_client_node(void* args){
                 uint64_t offset = get_rw_bit() == 1 ? 0 : STATE_SIZE/2;
                 hash_state_elements(start, end, hash_result);
 
-                printf("Start: %lu , End: %lu \n", start+offset, end+offset);
+                //printf("Start: %lu , End: %lu \n", start+offset, end+offset);
 
-                printf("hash: %s \n", hash_result);
+                //printf("hash: %s \n", hash_result);
 
                 memcpy(hash_msg->hash, hash_result, sizeof(unsigned char) * SHA256_DIGEST_LENGTH);
                 write(sockfd, hash_msg, sizeof(hash_msg_t));
             }
 
-            printf("Will send state part to node %d \n", id_recover);
+            //printf("Will send state part to node %d \n", id_recover);
 
             //Send t+1 part here:
             uint64_t start = (node_id-1) * ((STATE_SIZE/2) / (total_node-1));
@@ -102,6 +104,22 @@ void* open_client_node(void* args){
                 }
                 
             }
+
+            clock_gettime(CLOCK_REALTIME, &now_transfert);
+
+            time_diff(start_batch, now_transfert, diff_transfert);
+
+            double start_nsec_in_ms = ((double)diff_transfert->tv_nsec / 1000000);
+            double start_sec_in_ms = ((double)diff_transfert->tv_sec *1000);
+            double total_time = start_sec_in_ms + start_nsec_in_ms;
+
+            time_diff(start_transfert, now_transfert, diff_transfert);
+
+            double nsec_in_sec = ((double)diff_transfert->tv_nsec / 1000000000);
+            double elapsed = (double)diff_transfert->tv_sec + nsec_in_sec;
+
+            printf("%f: Transfert time: %f \n", total_time, elapsed);
+
 
             //Reset recover mode
             recover_mode = 0;
@@ -170,7 +188,7 @@ void* listen_server_node(void* args){
     printf("Receive from %d \n", conn_node_id);
 
     if(conn_node_id == 0){
-        clock_gettime(CLOCK_REALTIME, &start_batch);
+        //clock_gettime(CLOCK_REALTIME, &start_batch);
     }
 
     //Look for consensus_msg_t (sign that someone need to recover)
@@ -188,7 +206,7 @@ void* listen_server_node(void* args){
             //offsetof();
             block = 0;
             while(block != sizeof(consensus_msg_t)){
-                block += read(connfd_list_node[id], (void*)(msg) + block, sizeof(consensus_msg_t) - block);
+                block += read(connfd_list_node[id], (char*)(msg) + block, sizeof(consensus_msg_t) - block);
             }
             //printf("id: %d , epoch: %d , block: %d , error: %s \n", conn_node_id, msg->epoch, block, strerror(errno));
             //msg->id_sender = sender_id;
@@ -200,7 +218,25 @@ void* listen_server_node(void* args){
                         continue;
                     }
 
+                    clock_gettime(CLOCK_REALTIME, &start_copy);
+
                     copy_data(NULL);
+
+                    clock_gettime(CLOCK_REALTIME, &now_copy);
+
+                    time_diff(start_batch, now_copy, diff_copy);
+
+                    double start_nsec_in_ms = ((double)diff_copy->tv_nsec / 1000000);
+                    double start_sec_in_ms = ((double)diff_copy->tv_sec *1000);
+                    double total_time_ = start_sec_in_ms + start_nsec_in_ms;
+
+                    time_diff(start_copy, now_copy, diff_copy);
+
+                    double nsec_in_sec = ((double)diff_copy->tv_nsec / 1000000000);
+                    double elapsed_ = (double)diff_copy->tv_sec + nsec_in_sec;
+
+                    printf("%f: Copy time: %f \n", total_time_, elapsed_);
+
                     /*for(int i = 0; i < STATE_SIZE; ++i){
                         printf("%d \n", read_state(i));
                     }*/
@@ -215,8 +251,12 @@ void* listen_server_node(void* args){
                         continue; //Read batch but don't process them
                     }
 
-                    batch_t batch = {msg->batch};
+                    //batch_t batch = (batch_t)msg->batch;
+                    batch_t batch;
+                    batch.addr = (addr_t*)malloc(sizeof(addr_t)*BATCH_SIZE);
+                    memcpy(batch.addr, &(msg->batch), sizeof(addr_t)*BATCH_SIZE);
                     execute_batch(&batch, msg->epoch, 0);
+                    free(batch.addr);
                     ++epoch;
                     ++n_batch;
 
@@ -249,10 +289,10 @@ void* listen_server_node(void* args){
 
                 block = 0;
                 while(block != sizeof(hash_msg_t)){
-                    block += read(connfd_list_node[id], (void*)(hash_msg)+block, sizeof(hash_msg_t)-block);
+                    block += read(connfd_list_node[id], (char*)(hash_msg)+block, sizeof(hash_msg_t)-block);
                 }
                 
-                printf("hash: %s \n", hash_msg->hash);
+                //printf("hash: %s \n", hash_msg->hash);
                 memcpy(hash_result[conn_node_id-1][hash_state_pointer], hash_msg->hash, SHA256_DIGEST_LENGTH);
                 ++hash_state_pointer;
             }
@@ -278,18 +318,18 @@ void* listen_server_node(void* args){
                     //BESOIN DE COMPARER DE MANIÈRE PLUS EXHAUSTIVE
                     if(strncmp((const char*)temp_hash, (const char*)hash_result[conn_node_id-1][state_part_pointer], SHA256_DIGEST_LENGTH) == 0){
                         printf("CORRECT HASH ID %d \n", conn_node_id);
-                        printf("start = %d end = %d \n", start, end);
-                        printf("start hash: %d , end hash: %d \n", start + offset, offset + start + ((STATE_SIZE/2) / (total_node-1)));
-                        printf("part hash: %s \n", temp_hash);
+                        //printf("start = %d end = %d \n", start, end);
+                        //printf("start hash: %d , end hash: %d \n", start + offset, offset + start + ((STATE_SIZE/2) / (total_node-1)));
+                        //printf("part hash: %s \n", temp_hash);
 
                         memcpy(pointeur_rw + start_for_id + state_part_pointer*((STATE_SIZE/2) / (total_node-1)), pointeur_ro + start_for_id, sizeof(uint32_t)*(end-start)); //Src is always fixed, Dst depend on state_part_pointer
                     }
                     else{
                         printf("Hash are not equal ID %d \n", conn_node_id);
 
-                        printf("start = %d end = %d \n", start, end);
-                        printf("start hash: %d , end hash: %d \n", start + offset, offset + start + ((STATE_SIZE/2) / (total_node-1)));
-                        printf("part hash: %s \n", temp_hash);
+                        //printf("start = %d end = %d \n", start, end);
+                        //printf("start hash: %d , end hash: %d \n", start + offset, offset + start + ((STATE_SIZE/2) / (total_node-1)));
+                        //printf("part hash: %s \n", temp_hash);
                     }
 
                     ++state_part_pointer;
@@ -315,9 +355,17 @@ void* listen_server_node(void* args){
                         time_diff(start_recover, now_recover, diff_recover);
 
                         double nsec_in_sec = ((double)diff_recover->tv_nsec / 1000000000);
-                        double elapsed = (double)diff_recover->tv_sec + nsec_in_sec;
+                        double elapsed_ = (double)diff_recover->tv_sec + nsec_in_sec;
 
-                        printf("Recovery time: %f \n",elapsed);
+                        clock_gettime(CLOCK_REALTIME, &now_batch);
+
+                        time_diff(start_batch, now_batch, diff_batch);
+
+                        double start_nsec_in_ms = ((double)diff_batch->tv_nsec / 1000000);
+                        double start_sec_in_ms = ((double)diff_batch->tv_sec *1000);
+                        total_time = start_sec_in_ms + start_nsec_in_ms;
+
+                        printf("%f: Recovery time: %f \n", total_time, elapsed_);
                     }
                     else{
                         ++recover_mode;
@@ -355,6 +403,10 @@ void init_node(uint8_t id){
 
     diff_recover = (timespec*)malloc(sizeof(timespec));
     diff_batch = (timespec*)malloc(sizeof(timespec));
+    diff_copy = (timespec*)malloc(sizeof(timespec));
+    diff_transfert = (timespec*)malloc(sizeof(timespec));
+
+    clock_gettime(CLOCK_REALTIME, &start_batch);
 
     //Init hash list for each possible incoming node
     uint32_t total_hash = 2*((total_node-2)/3)+1;

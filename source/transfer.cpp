@@ -111,7 +111,7 @@ void receive_state(){
         new_buffer = new_buffer + block;
         block = read(connfd, (void*)new_buffer, STATE_SIZE*4 - total_read);
         total_read += block;
-        printf("read: %ld vs buffer size: %ld \n", total_read, STATE_SIZE*4);
+        printf("read: %lu vs buffer size: %d \n", total_read, STATE_SIZE*4);
 
         if(block < 0){
             //...check errno
@@ -130,6 +130,6 @@ void receive_state_rw_lock(){
         new_buffer = new_buffer + block;
         block = read(connfd, (void*)new_buffer, STATE_SIZE*2 - total_read);
         total_read += block;
-        printf("read: %ld vs buffer size: %ld \n", total_read, STATE_SIZE*2);
+        printf("read: %lu vs buffer size: %d \n", total_read, STATE_SIZE*2);
     }
 }
