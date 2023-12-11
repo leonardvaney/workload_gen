@@ -166,6 +166,8 @@ void* listen_server_node(void* args){
     consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
     hash_msg_t* hash_msg = (hash_msg_t*)malloc(sizeof(hash_msg_t));
     unsigned char* temp_hash = (unsigned char*)malloc(SHA256_DIGEST_LENGTH);
+    consensus_msg_t catchup_list[10000];
+    size_t catchup_list_size = 0;
     //uint8_t sender_id = 0;
     uint16_t state_part_pointer = 0;
     uint16_t hash_state_pointer = 0;
@@ -174,6 +176,9 @@ void* listen_server_node(void* args){
     double total_time, elapsed = 0;
     uint8_t begin_flag = 0; //permet de ne pas relancer le timer si on reçoit un message de recover
     //uint8_t hash_done = 0;
+
+    batch_t batch;
+    batch.addr = (addr_t*)malloc(sizeof(addr_t)*BATCH_SIZE);
 
     read_socket(connfd_list_node[id], (char*)&conn_node_id, sizeof(uint8_t));
 
@@ -243,18 +248,37 @@ void* listen_server_node(void* args){
                     //return NULL;
                 }
             else{
+
                     pthread_mutex_lock(&node_lock);
                     if(recover_mode >= 1 && node_id == id_recover){
+                        //Catchup procedure:
+                        ++catchup_list_size;
+                        //realloc(catchup_list, catchup_list_size*sizeof(consensus_msg_t));
+                        catchup_list[catchup_list_size-1] = *msg;
+
                         pthread_mutex_unlock(&node_lock);
-                        continue; //Read batch but don't process them
+                        continue;
                     }
                     pthread_mutex_unlock(&node_lock);
 
-                    batch_t batch;
-                    batch.addr = (addr_t*)malloc(sizeof(addr_t)*BATCH_SIZE);
+                    int counter = 0;
+                    while(catchup_list_size != counter){
+                        //Need to execute old batch before executing current one
+
+                        memcpy(batch.addr, &(catchup_list[counter].batch), sizeof(addr_t)*BATCH_SIZE);
+                        execute_batch(&batch, catchup_list[counter].epoch, 0);
+                        ++epoch;
+                        ++n_batch;
+                        ++counter;
+
+                        printf("Need to catchup \n");
+                    }
+
+                    catchup_list_size = 0;
+
                     memcpy(batch.addr, &(msg->batch), sizeof(addr_t)*BATCH_SIZE);
                     execute_batch(&batch, msg->epoch, 0);
-                    free(batch.addr);
+                    //free(batch.addr);
                     ++epoch;
                     ++n_batch;
 
