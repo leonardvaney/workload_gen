@@ -16,7 +16,9 @@ static uint8_t node_id;
 //Of size total_node - 1;
 static int* connfd_list_node;
 
-static pthread_mutex_t node_lock;
+static int simulate_crash;
+
+static pthread_mutex_t node_lock, node_crash;
 static int recover_mode; //0 if no recover, 1 if recover activated for an external node
 static uint8_t id_recover; //node that recover
 
