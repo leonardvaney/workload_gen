@@ -17,9 +17,9 @@
 #define STATE_SUBPART 10000
 
 #ifdef LOCAL
-#define BATCH_SIZE 100
+#define BATCH_SIZE 10000
 #else
-#define BATCH_SIZE 100
+#define BATCH_SIZE 1000000
 #endif
 
 #define NUMBER_OF_BATCH 100

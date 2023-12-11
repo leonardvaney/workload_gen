@@ -44,7 +44,7 @@ void* open_client_node(void* args){
             printf("node_id recover: %d \n", node_id);
             clock_gettime(CLOCK_REALTIME, &start_recover);
             switch_recover_mode(node_id);
-            consensus_msg_t msg;
+            consensus_msg_t msg = {};
             msg.epoch = 0;
             msg.id_recover = node_id;
             msg.recover = 1;
@@ -431,7 +431,7 @@ void init_node(uint8_t id){
         idd = (uint8_t*)malloc(sizeof(uint8_t));
         *idd = i >= node_id ? i+1 : i;
         printf("will create client thread %d \n", *idd);
-        pthread_create(&client[i], NULL, open_client_node, idd);
+        pthread_create(&client[i], NULL, &open_client_node, idd);
     }
 
     printf("All client ok \n");
@@ -444,7 +444,7 @@ void init_node(uint8_t id){
     for(int i = 0; i < total_node-1; ++i){
         idd = (uint8_t*)malloc(sizeof(uint8_t));
         *idd = i;
-        pthread_create(&server[i], NULL, listen_server_node, idd);
+        pthread_create(&server[i], NULL, &listen_server_node, idd);
     }
 
     printf("Main thread sleep \n");

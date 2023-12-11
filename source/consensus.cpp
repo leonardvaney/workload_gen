@@ -30,6 +30,7 @@ void* open_client_consensus(void* args){
     write(sockfd, &x, sizeof(uint8_t));
 
     int success = 0;
+    int written = 0;
     consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
 
     //Get consensus_msg_t and send them
@@ -46,7 +47,13 @@ void* open_client_consensus(void* args){
         //printf("msg: %p \n", msg);
         if(success == 1){ //get_fifo_msg se charge de free si il renvoie un msg == NULL
             //printf("Send msg to %d \n", id+1);
-            write(sockfd, msg, sizeof(consensus_msg_t));
+            
+            while(written != sizeof(consensus_msg_t)){
+                written += write(sockfd, ((char*)msg) + written, sizeof(consensus_msg_t) - written);
+            }
+
+            written = 0;
+
             //free(msg);
         }
     }
@@ -98,7 +105,10 @@ void* listen_server_consensus(void* args){
 
     //Look for consensus_mgs_t (sign that someone need to recover)
     while(true){
-        block = read(connfd_list_consensus[id], (void*)msg, sizeof(consensus_msg_t));
+        
+        while(block != sizeof(consensus_msg_t)){
+            block += read(connfd_list_consensus[id], ((char*)msg) + block, sizeof(consensus_msg_t) - block);
+        }
 
         if(block > 0){
             printf("Received recover request \n");
@@ -106,6 +116,8 @@ void* listen_server_consensus(void* args){
             msg->recover = 1;
             add_to_fifo(msg);
         }
+
+        block = 0;
 
         //MESSAGE A MODIFIER AVANT D'AJOUTER
         //add_to_fifo(msg);
@@ -150,7 +162,7 @@ void init_consensus(){
     for(int i = 0; i < total_node-1; ++i){
         idd = (uint8_t*)malloc(sizeof(uint8_t));
         *idd = i;
-        pthread_create(&client[i], NULL, open_client_consensus, idd);
+        pthread_create(&client[i], NULL, &open_client_consensus, idd);
     }
 
     open_server_consensus();
@@ -161,7 +173,7 @@ void init_consensus(){
     for(int i = 0; i < total_node-1; ++i){
         idd = (uint8_t*)malloc(sizeof(uint8_t));
         *idd = i;
-        pthread_create(&server[i], NULL, listen_server_consensus, idd);
+        pthread_create(&server[i], NULL, &listen_server_consensus, idd);
     }
 
     //Loop on batch to send
