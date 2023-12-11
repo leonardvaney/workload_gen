@@ -1,6 +1,18 @@
 #include <generator.hpp>
 
-void generate_batch(batch_t* batch){
+void time_diff(timespec start, timespec end, timespec* result){
+    //Diff between start and end
+    long time_spent_sec = (end.tv_sec - start.tv_sec);
+    long time_spent_nsec = (end.tv_nsec - start.tv_nsec);
+    if(time_spent_nsec < 0){
+        time_spent_sec -= 1;
+        time_spent_nsec += 1000000000;
+    }
+    result->tv_nsec = time_spent_nsec;
+    result->tv_sec = time_spent_sec;
+}
+
+/*void generate_batch(batch_t* batch){
     batch->addr = (addr_t*)malloc(sizeof(addr_t)*BATCH_SIZE*NUMBER_OF_BATCH);
     for(uint32_t i = 0; i < BATCH_SIZE*NUMBER_OF_BATCH; ++i){
         size_t random_value = rand();
@@ -18,18 +30,6 @@ void rw_lock_generate_batch(batch_t* batch){
         size_t cell_number = (size_t)((r / RAND_MAX) * STATE_SIZE / 2);
         batch->addr[i] = cell_number;
     }
-}
-
-void time_diff(timespec start, timespec end, timespec* result){
-    //Diff between start and end
-    long time_spent_sec = (end.tv_sec - start.tv_sec);
-    long time_spent_nsec = (end.tv_nsec - start.tv_nsec);
-    if(time_spent_nsec < 0){
-        time_spent_sec -= 1;
-        time_spent_nsec += 1000000000;
-    }
-    result->tv_nsec = time_spent_nsec;
-    result->tv_sec = time_spent_sec;
 }
 
 void* full_lock_generator(void* args){
@@ -198,4 +198,4 @@ void* rw_lock_generator(void* args){
             elapsed = 0;
         }
     }
-}
+}*/

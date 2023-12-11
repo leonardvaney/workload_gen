@@ -4,7 +4,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define TRANSFER_PORT 8891
+/*#define TRANSFER_PORT 8891
 
 static int connfd;
 static int sockfd;
@@ -21,4 +21,8 @@ void send_state_rw_lock();
 
 void receive_state();
 
-void receive_state_rw_lock();
+void receive_state_rw_lock();*/
+
+void read_socket(int sockfd, char* dest_buffer, size_t size);
+
+void write_socket(int sockfd, char* source_buffer, size_t size);

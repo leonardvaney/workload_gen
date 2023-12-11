@@ -3,6 +3,7 @@
 #include <state.hpp>
 #include <message.h>
 #include <fifo.hpp>
+#include <transfer.hpp>
 
 #include <arpa/inet.h>
 #include <stdlib.h>

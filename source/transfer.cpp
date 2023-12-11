@@ -1,6 +1,6 @@
 #include <transfer.hpp>
 
-void init_server(){
+/*void init_server(){
     struct sockaddr_in servaddr, cli;
     
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -131,5 +131,19 @@ void receive_state_rw_lock(){
         block = read(connfd, (void*)new_buffer, STATE_SIZE*2 - total_read);
         total_read += block;
         printf("read: %lu vs buffer size: %d \n", total_read, STATE_SIZE*2);
+    }
+}*/
+
+void read_socket(int sockfd, char* dest_buffer, size_t size){
+    size_t block = 0;
+    while(block != size){
+        block += read(sockfd, dest_buffer + block, size - block);
+    }
+}
+
+void write_socket(int sockfd, char* source_buffer, size_t size){
+    size_t written = 0;    
+    while(written != size){
+        written += write(sockfd, source_buffer + written, size - written);
     }
 }

@@ -50,7 +50,7 @@ static int is_serv;
   return ss.str();
 }*/
 
-void full_lock(){
+/*void full_lock(){
     pthread_t generator;
     pthread_mutex_t lock;
 
@@ -151,7 +151,7 @@ void rw_lock(){
         init_server();
         receive_state_rw_lock();
     }
-}
+}*/
  
 int main(int argc, char **argv) {
 

@@ -3,6 +3,7 @@
 #include <state.hpp>
 #include <message.h>
 #include <generator.hpp>
+#include <transfer.hpp>
 
 #include <arpa/inet.h>
 #include <stdlib.h>
@@ -18,6 +19,8 @@ static int* connfd_list_node;
 static pthread_mutex_t node_lock;
 static int recover_mode; //0 if no recover, 1 if recover activated for an external node
 static uint8_t id_recover; //node that recover
+
+static size_t state_part;
 
 static unsigned char*** hash_result;
 
