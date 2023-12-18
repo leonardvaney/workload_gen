@@ -166,8 +166,6 @@ void* listen_server_node(void* args){
     consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
     hash_msg_t* hash_msg = (hash_msg_t*)malloc(sizeof(hash_msg_t));
     unsigned char* temp_hash = (unsigned char*)malloc(SHA256_DIGEST_LENGTH);
-    consensus_msg_t catchup_list[10000];
-    size_t catchup_list_size = 0;
     //uint8_t sender_id = 0;
     uint16_t state_part_pointer = 0;
     uint16_t hash_state_pointer = 0;
@@ -257,7 +255,17 @@ void* listen_server_node(void* args){
                         catchup_list[catchup_list_size-1] = *msg;
 
                         pthread_mutex_unlock(&node_lock);
+
+                        if(catchup_list_size == CATCHUP_LIMIT){
+                            printf("Too slow to catchup \n");
+
+                            pthread_mutex_lock(&node_lock);
+                            pthread_cond_wait(&wake_catchup, &node_lock);
+                            pthread_mutex_unlock(&node_lock);
+                        }
+
                         continue;
+
                     }
                     pthread_mutex_unlock(&node_lock);
 
@@ -317,6 +325,16 @@ void* listen_server_node(void* args){
                 //printf("hash: %s \n", hash_msg->hash);
                 memcpy(hash_result[revised_id][hash_state_pointer], hash_msg->hash, SHA256_DIGEST_LENGTH);
                 ++hash_state_pointer;
+
+                clock_gettime(CLOCK_REALTIME, &now_batch);
+
+                time_diff(start_batch, now_batch, diff_batch);
+
+                double start_nsec_in_ms = ((double)diff_batch->tv_nsec / 1000000);
+                double start_sec_in_ms = ((double)diff_batch->tv_sec *1000);
+                total_time = start_sec_in_ms + start_nsec_in_ms;
+
+                printf("%f: Hash received from %d \n", total_time, conn_node_id);
             }
             else{ //Receive a state part
                 if(state_part_pointer < ((total_node-2)/3)+1){
@@ -333,6 +351,16 @@ void* listen_server_node(void* args){
                     hash_state_elements(start_for_id, start_for_id + state_part, temp_hash);
 
                     //printf("Will compare for %d \n", conn_node_id);
+
+                    clock_gettime(CLOCK_REALTIME, &now_batch);
+
+                    time_diff(start_batch, now_batch, diff_batch);
+
+                    double start_nsec_in_ms = ((double)diff_batch->tv_nsec / 1000000);
+                    double start_sec_in_ms = ((double)diff_batch->tv_sec *1000);
+                    total_time = start_sec_in_ms + start_nsec_in_ms;
+
+                    printf("%f: State part received from %d \n", total_time, conn_node_id);
                     
                     //BESOIN DE COMPARER DE MANIÈRE PLUS EXHAUSTIVE
                     if(strncmp((const char*)temp_hash, (const char*)hash_result[revised_id][state_part_pointer], SHA256_DIGEST_LENGTH) == 0){
@@ -373,6 +401,11 @@ void* listen_server_node(void* args){
                         //recover_mode = 0;
 
                         recover_mode = 0;
+
+                        pthread_mutex_unlock(&node_lock);
+
+                        pthread_cond_signal(&wake_catchup); //Unlock and wake an other thread
+
                         clock_gettime(CLOCK_REALTIME, &now_recover);
 
                         time_diff(start_recover, now_recover, diff_recover);
@@ -389,6 +422,8 @@ void* listen_server_node(void* args){
                         total_time = start_sec_in_ms + start_nsec_in_ms;
 
                         printf("%f: Recovery time: %f \n", total_time, elapsed_);
+
+                        continue;
                     }
                     else{
                         ++recover_mode;
@@ -425,6 +460,7 @@ void init_node(uint8_t id){
     server = (pthread_t*)malloc(sizeof(pthread_t) * (total_node-1));
     pthread_mutex_init(&node_lock, NULL);
     pthread_mutex_init(&node_crash, NULL);
+    pthread_cond_init(&wake_catchup, NULL);
 
     diff_recover = (timespec*)malloc(sizeof(timespec));
     diff_batch = (timespec*)malloc(sizeof(timespec));

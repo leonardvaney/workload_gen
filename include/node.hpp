@@ -11,6 +11,12 @@
 #include <errno.h>
 #include <pthread.h>
 
+#ifdef LOCAL
+#define CATCHUP_LIMIT 10000
+#else
+#define CATCHUP_LIMIT 1000
+#endif
+
 static uint8_t node_id;
 
 //Of size total_node - 1;
@@ -19,8 +25,12 @@ static int* connfd_list_node;
 static int simulate_crash;
 
 static pthread_mutex_t node_lock, node_crash;
+static pthread_cond_t wake_catchup;
 static int recover_mode; //0 if no recover, 1 if recover activated for an external node
 static uint8_t id_recover; //node that recover
+
+static consensus_msg_t catchup_list[CATCHUP_LIMIT];
+static size_t catchup_list_size = 0;
 
 static size_t state_part;
 

@@ -19,10 +19,10 @@
 #ifdef LOCAL
 #define BATCH_SIZE 100
 #else
-#define BATCH_SIZE 1000000
+#define BATCH_SIZE 128000
 #endif
 
-#define NUMBER_OF_BATCH 100
+#define NUMBER_OF_BATCH 10
 
 typedef uint64_t addr_t;
 

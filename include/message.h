@@ -2,6 +2,12 @@
 
 #include <state.hpp>
 
+#ifdef LOCAL
+#define PADDING 1
+#else
+#define PADDING 300000 //Batch size for 128k address is 1 MB, needs to add 0,3 MB with padding
+#endif
+
 struct addr_node_t {
     uint8_t id;
     char* ip;
@@ -14,6 +20,7 @@ struct consensus_msg_t {
     uint32_t epoch; //epoch to recover
     uint8_t recover; //1 if a node need to recover, 0 otherwise
     uint8_t id_recover; //id of the node that need to recover
+    char padding[PADDING];
 }__attribute__((packed));
 
 struct hash_msg_t {
