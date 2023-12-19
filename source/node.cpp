@@ -82,6 +82,9 @@ void* open_client_node(void* args){
                 write_socket(sockfd, (char*)hash_msg, sizeof(hash_msg_t));
             }
 
+            free(hash_result);
+            free(hash_msg);
+
             //printf("Will send state part to node %d \n", id_recover);
 
             //Send t+1 part here:
