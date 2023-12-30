@@ -3,6 +3,26 @@
 extern addr_node_t* node_list;
 extern uint8_t total_node;
 
+int msleep(long msec)
+{
+    struct timespec ts;
+    int res;
+
+    if (msec < 0){
+        errno = EINVAL;
+        return -1;
+    }
+
+    ts.tv_sec = msec / 1000;
+    ts.tv_nsec = (msec % 1000) * 1000000;
+
+    do{
+        res = nanosleep(&ts, &ts);
+    } while(res && errno == EINTR);
+
+    return res;
+}
+
 void switch_recover_mode(uint8_t id){
     pthread_mutex_lock(&node_lock);
     recover_mode = recover_mode == 1 ? 0 : 1;
@@ -56,6 +76,8 @@ void* open_client_node(void* args){
             //1) Need to send a hash of 2t+1 hash from 2t+1 state part (starting from part node_id)
             //2) Send t+1 state part (starting from part node_id)
 
+            pthread_mutex_unlock(&node_lock);
+
             clock_gettime(CLOCK_REALTIME, &start_transfert);
 
             uint8_t revised_id = node_id > id_recover ? node_id-2 : node_id-1;
@@ -80,6 +102,8 @@ void* open_client_node(void* args){
 
                 memcpy(hash_msg->hash, hash_result, sizeof(unsigned char) * SHA256_DIGEST_LENGTH);
                 write_socket(sockfd, (char*)hash_msg, sizeof(hash_msg_t));
+
+                //msleep(5000);
             }
 
             free(hash_result);
@@ -117,6 +141,7 @@ void* open_client_node(void* args){
             printf("%f: Transfert time: %f \n", total_time, elapsed);
 
 
+            pthread_mutex_lock(&node_lock);
             //Reset recover mode
             recover_mode = 0;
 
@@ -260,7 +285,16 @@ void* listen_server_node(void* args){
                         pthread_mutex_unlock(&node_lock);
 
                         if(catchup_list_size == CATCHUP_LIMIT){
-                            printf("Too slow to catchup \n");
+
+                            clock_gettime(CLOCK_REALTIME, &now_batch);
+
+                            time_diff(start_batch, now_batch, diff_batch);
+
+                            double start_nsec_in_ms = ((double)diff_batch->tv_nsec / 1000000);
+                            double start_sec_in_ms = ((double)diff_batch->tv_sec *1000);
+                            total_time = start_sec_in_ms + start_nsec_in_ms;
+
+                            printf("%f: Too slow to catchup \n", total_time);
 
                             pthread_mutex_lock(&node_lock);
                             pthread_cond_wait(&wake_catchup, &node_lock);
@@ -282,7 +316,7 @@ void* listen_server_node(void* args){
                         ++n_batch;
                         ++counter;
 
-                        printf("Need to catchup \n");
+                        //printf("Need to catchup \n");
                     }
 
                     catchup_list_size = 0;
@@ -464,6 +498,8 @@ void init_node(uint8_t id){
     pthread_mutex_init(&node_lock, NULL);
     pthread_mutex_init(&node_crash, NULL);
     pthread_cond_init(&wake_catchup, NULL);
+
+    catchup_list = (consensus_msg_t*)malloc(sizeof(consensus_msg_t) * CATCHUP_LIMIT);
 
     diff_recover = (timespec*)malloc(sizeof(timespec));
     diff_batch = (timespec*)malloc(sizeof(timespec));
