@@ -11,7 +11,7 @@
 #ifdef LOCAL
 #define STATE_SIZE 1200000
 #else
-#define STATE_SIZE 16000000002
+#define STATE_SIZE 12000000000
 #endif
 
 #define STATE_SUBPART 10000

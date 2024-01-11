@@ -103,6 +103,16 @@ void* open_client_node(void* args){
                 memcpy(hash_msg->hash, hash_result, sizeof(unsigned char) * SHA256_DIGEST_LENGTH);
                 write_socket(sockfd, (char*)hash_msg, sizeof(hash_msg_t));
 
+                clock_gettime(CLOCK_REALTIME, &now_transfert);
+
+                time_diff(start_batch, now_transfert, diff_transfert);
+
+                double start_nsec_in_ms = ((double)diff_transfert->tv_nsec / 1000000);
+                double start_sec_in_ms = ((double)diff_transfert->tv_sec *1000);
+                double total_time = start_sec_in_ms + start_nsec_in_ms;
+
+                printf("%f: Hash sent \n", total_time);
+
                 //msleep(5000);
             }
 
@@ -301,6 +311,28 @@ void* listen_server_node(void* args){
                             pthread_mutex_unlock(&node_lock);
                         }
 
+
+
+                        clock_gettime(CLOCK_REALTIME, &now_batch);
+
+                        time_diff(start_batch, now_batch, diff_batch);
+
+                        double start_nsec_in_ms = ((double)diff_batch->tv_nsec / 1000000);
+                        double start_sec_in_ms = ((double)diff_batch->tv_sec *1000);
+                        total_time = start_sec_in_ms + start_nsec_in_ms;
+
+                        time_diff(begin_batch, now_batch, diff_batch);
+
+                        double nsec_in_sec = ((double)diff_batch->tv_nsec / 1000000000);
+                        elapsed += (double)diff_batch->tv_sec + nsec_in_sec;
+                        
+                        if(elapsed >= 1){
+                            printf("%f: Speed: %f op/s \n", total_time, (n_batch*BATCH_SIZE) / elapsed);
+                            n_batch = 0;
+                            elapsed = 0;
+                        }
+
+
                         continue;
 
                     }
@@ -310,11 +342,37 @@ void* listen_server_node(void* args){
                     while(catchup_list_size != counter){
                         //Need to execute old batch before executing current one
 
+                        if(counter == 0){
+                            printf("Total batch to catchup: %lu \n", catchup_list_size);
+                        }
+                        else{
+                            clock_gettime(CLOCK_REALTIME, &begin_batch);
+                        }
+
                         memcpy(batch.addr, &(catchup_list[counter].batch), sizeof(addr_t)*BATCH_SIZE);
                         execute_batch(&batch, catchup_list[counter].epoch, 0);
                         ++epoch;
                         ++n_batch;
                         ++counter;
+
+                        clock_gettime(CLOCK_REALTIME, &now_batch);
+
+                        time_diff(start_batch, now_batch, diff_batch);
+
+                        double start_nsec_in_ms = ((double)diff_batch->tv_nsec / 1000000);
+                        double start_sec_in_ms = ((double)diff_batch->tv_sec *1000);
+                        total_time = start_sec_in_ms + start_nsec_in_ms;
+
+                        time_diff(begin_batch, now_batch, diff_batch);
+
+                        double nsec_in_sec = ((double)diff_batch->tv_nsec / 1000000000);
+                        elapsed += (double)diff_batch->tv_sec + nsec_in_sec;
+
+                        if(elapsed >= 1){
+                            printf("%f: Speed: %f op/s \n", total_time, (n_batch*BATCH_SIZE) / elapsed);
+                            n_batch = 0;
+                            elapsed = 0;
+                        }
 
                         //printf("Need to catchup \n");
                     }

@@ -14,7 +14,7 @@
 #ifdef LOCAL
 #define CATCHUP_LIMIT 10000
 #else
-#define CATCHUP_LIMIT 15400
+#define CATCHUP_LIMIT 11500
 #endif
 
 static uint8_t node_id;
