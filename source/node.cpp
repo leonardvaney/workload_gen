@@ -62,6 +62,7 @@ void* open_client_node(void* args){
         if(id == 0 && simulate_crash == 1){ //If this is the thread assigned to the consensus node and this node is the last id node
             printf("node_id recover: %d \n", node_id);
             clock_gettime(CLOCK_REALTIME, &start_recover);
+            stop_queue();
             switch_recover_mode(node_id);
             simulate_crash = 0;
             consensus_msg_t msg = {};
@@ -152,8 +153,10 @@ void* open_client_node(void* args){
 
 
             pthread_mutex_lock(&node_lock);
+            
             //Reset recover mode
             recover_mode = 0;
+            stop_queue();
 
         }
         pthread_mutex_unlock(&node_lock);
@@ -213,8 +216,8 @@ void* listen_server_node(void* args){
     uint8_t begin_flag = 0; //permet de ne pas relancer le timer si on reçoit un message de recover
     //uint8_t hash_done = 0;
 
-    batch_t batch;
-    batch.addr = (addr_t*)malloc(sizeof(addr_t)*BATCH_SIZE);
+    /*batch_t batch;
+    batch.addr = (addr_t*)malloc(sizeof(addr_t)*BATCH_SIZE);*/
 
     read_socket(connfd_list_node[id], (char*)&conn_node_id, sizeof(uint8_t));
 
@@ -248,12 +251,7 @@ void* listen_server_node(void* args){
                 //if(msg->recover == 1){ //Received a recover message from the consensus node
                     printf("recover message received with id = %d \n", msg->id_recover);
                     
-                    //pthread_mutex_lock(&node_lock);
-                    /*if(recover_mode >= 1 && node_id == id_recover){
-                        //pthread_mutex_unlock(&node_lock);
-                        continue;
-                    }*/
-                    //pthread_mutex_unlock(&node_lock);
+                    stop_queue();
 
                     clock_gettime(CLOCK_REALTIME, &start_copy);
 
@@ -274,140 +272,14 @@ void* listen_server_node(void* args){
 
                     printf("%f: Copy time: %f \n", total_time_, elapsed_);
 
-                    /*for(int i = 0; i < STATE_SIZE; ++i){
-                        printf("%d \n", read_state(i));
-                    }*/
-
                     begin_flag = 1;
 
                     switch_recover_mode(msg->id_recover);
                     //return NULL;
                 }
             else{
-
-                    pthread_mutex_lock(&node_lock);
-                    if(recover_mode >= 1 && node_id == id_recover){
-                        //Catchup procedure:
-                        ++catchup_list_size;
-                        //realloc(catchup_list, catchup_list_size*sizeof(consensus_msg_t));
-                        catchup_list[catchup_list_size-1] = *msg;
-
-                        pthread_mutex_unlock(&node_lock);
-
-                        if(catchup_list_size == CATCHUP_LIMIT){
-
-                            clock_gettime(CLOCK_REALTIME, &now_batch);
-
-                            time_diff(start_batch, now_batch, diff_batch);
-
-                            double start_nsec_in_ms = ((double)diff_batch->tv_nsec / 1000000);
-                            double start_sec_in_ms = ((double)diff_batch->tv_sec *1000);
-                            total_time = start_sec_in_ms + start_nsec_in_ms;
-
-                            printf("%f: Too slow to catchup \n", total_time);
-
-                            pthread_mutex_lock(&node_lock);
-                            pthread_cond_wait(&wake_catchup, &node_lock);
-                            pthread_mutex_unlock(&node_lock);
-                        }
-
-
-
-                        clock_gettime(CLOCK_REALTIME, &now_batch);
-
-                        time_diff(start_batch, now_batch, diff_batch);
-
-                        double start_nsec_in_ms = ((double)diff_batch->tv_nsec / 1000000);
-                        double start_sec_in_ms = ((double)diff_batch->tv_sec *1000);
-                        total_time = start_sec_in_ms + start_nsec_in_ms;
-
-                        time_diff(begin_batch, now_batch, diff_batch);
-
-                        double nsec_in_sec = ((double)diff_batch->tv_nsec / 1000000000);
-                        elapsed += (double)diff_batch->tv_sec + nsec_in_sec;
-                        
-                        if(elapsed >= 1){
-                            printf("%f: Speed: %f op/s \n", total_time, (n_batch*BATCH_SIZE) / elapsed);
-                            n_batch = 0;
-                            elapsed = 0;
-                        }
-
-
-                        continue;
-
-                    }
-                    pthread_mutex_unlock(&node_lock);
-
-                    int counter = 0;
-                    while(catchup_list_size != counter){
-                        //Need to execute old batch before executing current one
-
-                        if(counter == 0){
-                            printf("Total batch to catchup: %lu \n", catchup_list_size);
-                        }
-                        else{
-                            clock_gettime(CLOCK_REALTIME, &begin_batch);
-                        }
-
-                        memcpy(batch.addr, &(catchup_list[counter].batch), sizeof(addr_t)*BATCH_SIZE);
-                        execute_batch(&batch, catchup_list[counter].epoch, 0);
-                        ++epoch;
-                        ++n_batch;
-                        ++counter;
-
-                        clock_gettime(CLOCK_REALTIME, &now_batch);
-
-                        time_diff(start_batch, now_batch, diff_batch);
-
-                        double start_nsec_in_ms = ((double)diff_batch->tv_nsec / 1000000);
-                        double start_sec_in_ms = ((double)diff_batch->tv_sec *1000);
-                        total_time = start_sec_in_ms + start_nsec_in_ms;
-
-                        time_diff(begin_batch, now_batch, diff_batch);
-
-                        double nsec_in_sec = ((double)diff_batch->tv_nsec / 1000000000);
-                        elapsed += (double)diff_batch->tv_sec + nsec_in_sec;
-
-                        if(elapsed >= 1){
-                            printf("%f: Speed: %f op/s \n", total_time, (n_batch*BATCH_SIZE) / elapsed);
-                            n_batch = 0;
-                            elapsed = 0;
-                        }
-
-                        //printf("Need to catchup \n");
-                    }
-
-                    catchup_list_size = 0;
-
-                    memcpy(batch.addr, &(msg->batch), sizeof(addr_t)*BATCH_SIZE);
-                    execute_batch(&batch, msg->epoch, 0);
-                    //free(batch.addr);
-                    ++epoch;
-                    ++n_batch;
-
-                    clock_gettime(CLOCK_REALTIME, &now_batch);
-
-                    time_diff(start_batch, now_batch, diff_batch);
-
-                    double start_nsec_in_ms = ((double)diff_batch->tv_nsec / 1000000);
-                    double start_sec_in_ms = ((double)diff_batch->tv_sec *1000);
-                    total_time = start_sec_in_ms + start_nsec_in_ms;
-
-                    time_diff(begin_batch, now_batch, diff_batch);
-
-                    double nsec_in_sec = ((double)diff_batch->tv_nsec / 1000000000);
-                    elapsed += (double)diff_batch->tv_sec + nsec_in_sec;
-
-                    //printf("elapsed %f \n", elapsed);
-                    
-                    if(elapsed >= 1){
-                        printf("%f: Speed: %f op/s \n", total_time, (n_batch*BATCH_SIZE) / elapsed);
-                        n_batch = 0;
-                        elapsed = 0;
-                    }
-
+                    enqueue_message(*msg);
             }
-            //}
         }
         else{ //Received a hash or a state part from a node
             if(hash_state_pointer < 2*((total_node-2)/3)+1){ //Receive a hash
@@ -493,13 +365,14 @@ void* listen_server_node(void* args){
                         }*/
 
                         printf("End of recover \n");
-                        //recover_mode = 0;
 
                         recover_mode = 0;
 
                         pthread_mutex_unlock(&node_lock);
 
-                        pthread_cond_signal(&wake_catchup); //Unlock and wake an other thread
+                        stop_queue();
+
+                        //pthread_cond_signal(&wake_catchup); //Unlock and wake an other thread
 
                         clock_gettime(CLOCK_REALTIME, &now_recover);
 
@@ -542,29 +415,21 @@ void init_node(uint8_t id){
 
     node_id = id;
 
-    /*if(node_id == total_node-1){
-        for(int i = 0; i < STATE_SIZE; ++i){
-            write_state(i, 0);
-        }
-    }*/
     state_part = ((STATE_SIZE/2) / (total_node-2));
 
+    pthread_t queue;
     pthread_t* client;
     pthread_t* server;
     client = (pthread_t*)malloc(sizeof(pthread_t) * (total_node-1));
     server = (pthread_t*)malloc(sizeof(pthread_t) * (total_node-1));
     pthread_mutex_init(&node_lock, NULL);
     pthread_mutex_init(&node_crash, NULL);
-    pthread_cond_init(&wake_catchup, NULL);
-
-    catchup_list = (consensus_msg_t*)malloc(sizeof(consensus_msg_t) * CATCHUP_LIMIT);
+    //pthread_cond_init(&wake_catchup, NULL);
 
     diff_recover = (timespec*)malloc(sizeof(timespec));
-    diff_batch = (timespec*)malloc(sizeof(timespec));
     diff_copy = (timespec*)malloc(sizeof(timespec));
+    diff_batch = (timespec*)malloc(sizeof(timespec));
     diff_transfert = (timespec*)malloc(sizeof(timespec));
-
-    clock_gettime(CLOCK_REALTIME, &start_batch);
 
     //Init hash list for each possible incoming node
     uint32_t total_hash = 2*((total_node-2)/3)+1;
@@ -578,11 +443,11 @@ void init_node(uint8_t id){
 
     uint8_t* idd;
 
-    //printf("ok \n");
-    //printf("total node: %d \n", total_node);
-    for(int i = 0; i < total_node; ++i){
-        printf("%d \n", htons(node_list[i].port));
-    }
+    clock_gettime(CLOCK_REALTIME, &start_batch);
+
+    //Init queue thread
+    init_queue();
+    pthread_create(&queue, NULL, &queue_thread, NULL);
 
     //Create client threads
     for(int i = 0; i < total_node-1; ++i){
