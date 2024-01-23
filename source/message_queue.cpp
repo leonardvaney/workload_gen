@@ -25,7 +25,7 @@ void* queue_thread(void* args){
 
     while(true){
 
-        pthread_mutex_lock(&queue_lock);
+        //pthread_mutex_lock(&queue_lock);
 
         if(is_empty() == 0 && stop == 0){
 
@@ -51,7 +51,7 @@ void* queue_thread(void* args){
                                 
             if(elapsed >= 1){
                 printf("%f: Speed: %f op/s \n", total_time, (n_batch*BATCH_SIZE) / elapsed);
-                printf("Front: %d Rear: %d \n", front, rear);
+                //printf("Front: %d Rear: %d \n", front, rear);
                 n_batch = 0;
                 elapsed = 0;
             }
@@ -59,7 +59,7 @@ void* queue_thread(void* args){
             clock_gettime(CLOCK_REALTIME, &begin);
         }
 
-        pthread_mutex_unlock(&queue_lock);
+        //pthread_mutex_unlock(&queue_lock);
     
     }
 
@@ -72,20 +72,26 @@ void stop_queue(){
 }
 
 int is_full() {
+    pthread_mutex_lock(&queue_lock);
     if ((front == rear + 1) || (front == 0 && rear == CATCHUP_LIMIT - 1)) {
+        pthread_mutex_unlock(&queue_lock);
         return 1;
     }
+    pthread_mutex_unlock(&queue_lock);
     return 0;
 }
 
 int is_empty() {
+    pthread_mutex_lock(&queue_lock);
     if (front == -1) {
+        pthread_mutex_unlock(&queue_lock);
         return 1;
     }
+    pthread_mutex_unlock(&queue_lock);
     return 0;
 }
 
-void enqueue_message(consensus_msg_t message) {
+void enqueue_message(consensus_msg_t* message) {
     while(is_full()) {
         //Wait
     }
@@ -94,7 +100,7 @@ void enqueue_message(consensus_msg_t message) {
         front = 0;
     }
     rear = (rear + 1) % CATCHUP_LIMIT;
-    message_queue[rear] = message;
+    message_queue[rear] = *message;
     pthread_mutex_unlock(&queue_lock);
 }
 
@@ -104,6 +110,7 @@ consensus_msg_t dequeue_message() {
         return {};
     } 
     else {
+        pthread_mutex_lock(&queue_lock);
         message = message_queue[front];
         if (front == rear) {
         front = -1;
@@ -112,6 +119,7 @@ consensus_msg_t dequeue_message() {
         else {
             front = (front + 1) % CATCHUP_LIMIT;
         }
+        pthread_mutex_unlock(&queue_lock);
         return message;
     }
 }

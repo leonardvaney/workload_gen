@@ -158,13 +158,13 @@ void* open_client_node(void* args){
             
             pthread_mutex_unlock(&node_lock);
             
-            stop_queue();
-
             break;
 
         }
         pthread_mutex_unlock(&node_lock);
     }
+
+    return NULL;
 }
 
 void* listen_server_node_consensus(void* args){
@@ -196,6 +196,8 @@ void* listen_server_node_consensus(void* args){
 
                     copy_data(NULL);
 
+                    stop_queue();
+
                     clock_gettime(CLOCK_REALTIME, &now_copy);
 
                     time_diff(start_batch, now_copy, diff_copy);
@@ -219,7 +221,7 @@ void* listen_server_node_consensus(void* args){
                     //return NULL;
                 }
             else{
-                    enqueue_message(*msg);
+                    enqueue_message(msg);
             }
         }
     }
@@ -374,6 +376,8 @@ void* listen_server_node(void* args){
 
     free(hash_msg);
     free(temp_hash);
+
+    return NULL;
 }
 
 void* open_client_node_consensus(void* args){

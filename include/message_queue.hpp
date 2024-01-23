@@ -7,7 +7,7 @@
 #ifdef LOCAL
 #define CATCHUP_LIMIT 10000
 #else
-#define CATCHUP_LIMIT 15400
+#define CATCHUP_LIMIT 13000
 #endif
 
 static pthread_mutex_t queue_lock;
@@ -30,6 +30,6 @@ int is_full();
 
 int is_empty();
 
-void enqueue_message(consensus_msg_t message);
+void enqueue_message(consensus_msg_t* message);
 
 consensus_msg_t dequeue_message();

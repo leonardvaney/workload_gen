@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 //#define MAX_FIFO 256
-#define MAX_MSG_LIST 10
+#define MAX_MSG_LIST 2
 
 struct fifo_t {
     consensus_msg_t* msg_list;
