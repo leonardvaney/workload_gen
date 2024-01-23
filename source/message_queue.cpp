@@ -51,6 +51,7 @@ void* queue_thread(void* args){
                                 
             if(elapsed >= 1){
                 printf("%f: Speed: %f op/s \n", total_time, (n_batch*BATCH_SIZE) / elapsed);
+                printf("Front: %d Rear: %d \n", front, rear);
                 n_batch = 0;
                 elapsed = 0;
             }

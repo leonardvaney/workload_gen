@@ -21,7 +21,10 @@
 static uint8_t node_id;
 
 //Of size total_node - 1;
+static pthread_t* client;
+static pthread_t* server;
 static int* connfd_list_node;
+static int server_sockfd;
 
 static int simulate_crash;
 
