@@ -24,9 +24,6 @@ void* queue_thread(void* args){
     clock_gettime(CLOCK_REALTIME, &begin);
 
     while(true){
-
-        //pthread_mutex_lock(&queue_lock);
-
         if(is_empty() == 0 && stop == 0){
 
             consensus_msg_t message = dequeue_message();
@@ -57,10 +54,7 @@ void* queue_thread(void* args){
             }
 
             clock_gettime(CLOCK_REALTIME, &begin);
-        }
-
-        //pthread_mutex_unlock(&queue_lock);
-    
+        }    
     }
 
 }

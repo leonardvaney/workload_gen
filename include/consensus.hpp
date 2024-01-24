@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+//Not used
 #define BATCH_WAIT 0.4
 
 extern addr_node_t* node_list;

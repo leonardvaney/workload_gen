@@ -14,6 +14,7 @@
 #define STATE_SIZE 12000000000
 #endif
 
+//Not used anymore
 #define STATE_SUBPART 10000
 
 #ifdef LOCAL
@@ -22,6 +23,7 @@
 #define BATCH_SIZE 128000
 #endif
 
+//Not used anymore
 #define NUMBER_OF_BATCH 10
 
 typedef uint64_t addr_t;

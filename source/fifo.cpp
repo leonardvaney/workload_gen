@@ -18,8 +18,6 @@ void add_to_fifo(consensus_msg_t* msg){
     for(int i = 0; i < fifo_size; ++i){
         pthread_mutex_lock(&fifo[i].lock);
 
-        //printf("Size list of %d : %d \n", i, fifo[i].size_list);
-
         if(fifo[i].size_list == MAX_MSG_LIST){
             
             //Certainement possible de faire mieux
@@ -41,7 +39,6 @@ void add_to_fifo(consensus_msg_t* msg){
         else{
             fifo[i].msg_list[fifo[i].size_list] = *msg;
             fifo[i].size_list += 1;
-            //printf("Add epoch %d to fifo \n", msg->epoch);
         }
 
         pthread_mutex_unlock(&fifo[i].lock);
@@ -52,23 +49,13 @@ void add_to_fifo(consensus_msg_t* msg){
 int get_fifo_msg(uint8_t id, consensus_msg_t* result){
     pthread_mutex_lock(&fifo[id].lock);
 
-    //printf("Will return fifo message \n");
     int success = 0;
 
     if(fifo[id].size_list == 0){
-        //printf("Empty fifo \n");
-        //free(result); //Probablement dangereux...
-        //result = NULL; //No message in the list
         success = 0;
     }
     else{
-        //printf("Not empty fifo \n");
-        //printf("%d \n", result->epoch);
         memcpy(result, &(fifo[id].msg_list[0]), sizeof(consensus_msg_t));
-        //memset
-
-        //printf("memcpy ok \n");
-        //Move every element one index lower
         for(int i = 0; i < fifo[id].size_list-1; ++i){
             fifo[id].msg_list[i] = fifo[id].msg_list[i+1];
         }
@@ -76,8 +63,6 @@ int get_fifo_msg(uint8_t id, consensus_msg_t* result){
 
         success = 1;
     }
-
-    //printf("Return fifo message \n");
 
     pthread_mutex_unlock(&fifo[id].lock);
 

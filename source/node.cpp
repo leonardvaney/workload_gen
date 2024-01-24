@@ -39,7 +39,6 @@ void accept_node_conn(int start, int end){
     //for(int i = 0; i <= total_node-2; ++i){
     for(int i = start; i <= end; ++i){
         int connfd = accept(server_sockfd, (struct sockaddr*)&cli, (socklen_t*)&len);
-        //printf("ip: %d, port: %d \n", cli.sin_addr.s_addr, cli.sin_port);
         if(connfd < 0){
             printf("server accept failed with connfd = %d and server_sockfd = %d \n", connfd, server_sockfd);
         }
@@ -86,8 +85,6 @@ void* open_client_node(void* args){
             hash_msg_t* hash_msg = (hash_msg_t*)malloc(sizeof(hash_msg_t));
             uint32_t* pointeur = get_rw_bit() == 1 ? get_cells() : get_cells() + STATE_SIZE/2;
 
-            //printf("Will send hash to node %d \n", id_recover);
-
             for(int i = 0; i < 2*t_value+1; ++i){
 
                 //Send hash here:
@@ -95,10 +92,6 @@ void* open_client_node(void* args){
                 uint64_t end = start + state_part;
                 uint64_t offset = get_rw_bit() == 1 ? 0 : STATE_SIZE/2;
                 hash_state_elements(start, end, hash_result);
-
-                //printf("Start: %lu , End: %lu \n", start+offset, end+offset);
-
-                //printf("hash: %s \n", hash_result);
 
                 memcpy(hash_msg->hash, hash_result, sizeof(unsigned char) * SHA256_DIGEST_LENGTH);
                 write_socket(sockfd, (char*)hash_msg, sizeof(hash_msg_t));
@@ -110,22 +103,14 @@ void* open_client_node(void* args){
                 double start_nsec_in_ms = ((double)diff_transfert->tv_nsec / 1000000);
                 double start_sec_in_ms = ((double)diff_transfert->tv_sec *1000);
                 double total_time = start_sec_in_ms + start_nsec_in_ms;
-
-                //printf("%f: Hash sent \n", total_time);
-
-                //msleep(5000);
             }
 
             free(hash_result);
             free(hash_msg);
 
-            //printf("Will send state part to node %d \n", id_recover);
-
             //Send t+1 part here:
             uint64_t start = (revised_id) * state_part;
             uint64_t end = (start + state_part*(t_value+1))%(STATE_SIZE/2);
-
-            //printf("start: %lu , end: %lu \n", start, end);
 
             if(start < end){ //Send a continuous array
                 write_socket(sockfd, (char*)(pointeur + start), sizeof(uint32_t)*(end-start));
@@ -179,49 +164,41 @@ void* listen_server_node_consensus(void* args){
 
     while(true){
         if(conn_node_id == 0){
-
-            //printf("Will receive consensus message \n");
-
-            //offsetof();
             read_socket(connfd_list_node[id], (char*)(msg), sizeof(consensus_msg_t));
-            //printf("id: %d , epoch: %d , block: %d , error: %s \n", conn_node_id, msg->epoch, block, strerror(errno));
-            //msg->id_sender = sender_id;
             if(msg->epoch == 0 && msg->recover == 1 && msg->id_recover != node_id){
-                //if(msg->recover == 1){ //Received a recover message from the consensus node
-                    printf("recover message received with id = %d \n", msg->id_recover);
+                printf("recover message received with id = %d \n", msg->id_recover);
                     
-                    stop_queue();
+                stop_queue();
 
-                    clock_gettime(CLOCK_REALTIME, &start_copy);
+                clock_gettime(CLOCK_REALTIME, &start_copy);
 
-                    copy_data(NULL);
+                copy_data(NULL);
 
-                    stop_queue();
+                stop_queue();
 
-                    clock_gettime(CLOCK_REALTIME, &now_copy);
+                clock_gettime(CLOCK_REALTIME, &now_copy);
 
-                    time_diff(start_batch, now_copy, diff_copy);
+                time_diff(start_batch, now_copy, diff_copy);
 
-                    double start_nsec_in_ms = ((double)diff_copy->tv_nsec / 1000000);
-                    double start_sec_in_ms = ((double)diff_copy->tv_sec *1000);
-                    double total_time_ = start_sec_in_ms + start_nsec_in_ms;
+                double start_nsec_in_ms = ((double)diff_copy->tv_nsec / 1000000);
+                double start_sec_in_ms = ((double)diff_copy->tv_sec *1000);
+                double total_time_ = start_sec_in_ms + start_nsec_in_ms;
 
-                    time_diff(start_copy, now_copy, diff_copy);
+                time_diff(start_copy, now_copy, diff_copy);
 
-                    double nsec_in_sec = ((double)diff_copy->tv_nsec / 1000000000);
-                    double elapsed_ = (double)diff_copy->tv_sec + nsec_in_sec;
+                double nsec_in_sec = ((double)diff_copy->tv_nsec / 1000000000);
+                double elapsed_ = (double)diff_copy->tv_sec + nsec_in_sec;
 
-                    printf("%f: Copy time: %f \n", total_time_, elapsed_);
+                printf("%f: Copy time: %f \n", total_time_, elapsed_);
 
-                    *idd = msg->id_recover;
-                    printf("will create client thread %d \n", *idd);
-                    pthread_create(&client[msg->id_recover], NULL, &open_client_node, idd);
+                *idd = msg->id_recover;
+                printf("will create client thread %d \n", *idd);
+                pthread_create(&client[msg->id_recover], NULL, &open_client_node, idd);
 
-                    switch_recover_mode(msg->id_recover);
-                    //return NULL;
-                }
-            else{
-                    enqueue_message(msg);
+                switch_recover_mode(msg->id_recover);
+            }
+        else{
+                enqueue_message(msg);
             }
         }
     }
@@ -236,29 +213,17 @@ void* listen_server_node(void* args){
     uint16_t hash_state_pointer = 0;
     uint16_t end_of_recover = 0;
     double total_time = 0;
-    //uint8_t hash_done = 0;
-
-    /*batch_t batch;
-    batch.addr = (addr_t*)malloc(sizeof(addr_t)*BATCH_SIZE);*/
 
     read_socket(connfd_list_node[id], (char*)&conn_node_id, sizeof(uint8_t));
     uint8_t revised_id = conn_node_id > node_id ? conn_node_id-2 : conn_node_id-1;
-
-    //printf("Receive from %d \n", conn_node_id);
-    //printf("id: %d \n", id);
-    //printf("revised id: %d \n", revised_id);
 
     //Look for consensus_msg_t (sign that someone need to recover)
     while(true){
         //Received a hash or a state part from a node
         if(hash_state_pointer < 2*((total_node-2)/3)+1){ //Receive a hash
 
-            //printf("Will receive hash from %d \n", conn_node_id);
-
-            read_socket(connfd_list_node[id], (char*)(hash_msg), sizeof(hash_msg_t));
+            read_socket(connfd_list_node[id], (char*)(hash_msg), sizeof(hash_msg_t));                
                 
-                
-            //printf("hash: %s \n", hash_msg->hash);
             memcpy(hash_result[revised_id][hash_state_pointer], hash_msg->hash, SHA256_DIGEST_LENGTH);
             ++hash_state_pointer;
 
@@ -286,8 +251,6 @@ void* listen_server_node(void* args){
                     
                 hash_state_elements(start_for_id, start_for_id + state_part, temp_hash);
 
-                    //printf("Will compare for %d \n", conn_node_id);
-
                 clock_gettime(CLOCK_REALTIME, &now_batch);
 
                 time_diff(start_batch, now_batch, diff_batch);
@@ -301,22 +264,11 @@ void* listen_server_node(void* args){
                     //BESOIN DE COMPARER DE MANIÈRE PLUS EXHAUSTIVE
                 if(strncmp((const char*)temp_hash, (const char*)hash_result[revised_id][state_part_pointer], SHA256_DIGEST_LENGTH) == 0){
                     printf("CORRECT HASH ID %d \n", conn_node_id);
-                        //printf("start = %d end = %d \n", start, end);
-                        //printf("start hash: %d , end hash: %d \n", start + offset, offset + start + state_part);
-                        //printf("part hash: %s \n", temp_hash);
 
-                        //printf("%d \n", *(pointeur_rw + start_for_id + state_part_pointer*state_part, pointeur_ro + start_for_id));
-
-                        //printf("dest: %lu, source: %lu, size: %d \n", pointeur_rw + start, pointeur_ro + start_for_id, sizeof(uint32_t)*(end-start));
                     memcpy(pointeur_rw + start, pointeur_ro + start_for_id, sizeof(uint32_t)*(end-start)); //Src is always fixed, Dst depend on state_part_pointer
-                        //printf("pas de core dump svp \n");
                 }
                 else{
                     printf("Hash are not equal ID %d \n", conn_node_id);
-
-                        //printf("start = %d end = %d \n", start, end);
-                        //printf("start hash: %d , end hash: %d \n", start + offset, offset + start + state_part);
-                        //printf("part hash: %s \n", temp_hash);
                 }
 
                 ++state_part_pointer;
@@ -329,9 +281,6 @@ void* listen_server_node(void* args){
                 pthread_mutex_lock(&node_lock);
 
                 if(recover_mode == total_node-2){
-                        /*for(int i = 0; i < STATE_SIZE; ++i){
-                            printf("%d \n", read_state(i));
-                        }*/
 
                     printf("End of recover \n");
 
@@ -340,8 +289,6 @@ void* listen_server_node(void* args){
                     pthread_mutex_unlock(&node_lock);
 
                     stop_queue();
-
-                        //pthread_cond_signal(&wake_catchup); //Unlock and wake an other thread
 
                     clock_gettime(CLOCK_REALTIME, &now_recover);
 
@@ -443,8 +390,6 @@ void open_server_node(){
     if((listen(server_sockfd, 32)) != 0){
         printf("listen failed \n");
     }
-
-    printf("Result server_sockfd = %d \n", server_sockfd);
 }
 
 void init_node(uint8_t id){
@@ -463,7 +408,6 @@ void init_node(uint8_t id){
     server_sockfd = 0;
     pthread_mutex_init(&node_lock, NULL);
     pthread_mutex_init(&node_crash, NULL);
-    //pthread_cond_init(&wake_catchup, NULL);
 
     diff_recover = (timespec*)malloc(sizeof(timespec));
     diff_copy = (timespec*)malloc(sizeof(timespec));
@@ -491,11 +435,6 @@ void init_node(uint8_t id){
 
     //Create client threads
     pthread_create(&client[0], NULL, &open_client_node_consensus, idd);
-    /*for(int i = 0; i < total_node-1; ++i){
-        *idd = i >= node_id ? i+1 : i;
-        printf("will create client thread %d \n", *idd);
-        pthread_create(&client[i], NULL, &open_client_node, idd);
-    }*/
 
     printf("All client ok \n");
 
@@ -506,10 +445,6 @@ void init_node(uint8_t id){
 
     //Create server threads
     pthread_create(&server[0], NULL, &listen_server_node_consensus, idd);
-    /*for(int i = 0; i < total_node-1; ++i){
-        *idd = i;
-        pthread_create(&server[i], NULL, &listen_server_node, idd);
-    }*/
 
     printf("Main thread wait for input \n");
 
@@ -521,7 +456,6 @@ void init_node(uint8_t id){
         result = scanf("%d", &command);
         if(result == 1){
             if(command == 1){ //Make the node crash
-                //printf("oui \n");
                 simulate_crash = 1;
             }
         }
