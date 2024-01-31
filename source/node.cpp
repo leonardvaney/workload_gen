@@ -49,7 +49,8 @@ void accept_node_conn(int start, int end){
 }
 
 void* open_client_node(void* args){
-    uint8_t id = *((uint8_t*)args);
+    uint8_t id = *((int*)args);
+    free(args);
     struct sockaddr_in servaddr, cli;
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if(sockfd == -1){
@@ -156,8 +157,8 @@ void* listen_server_node_consensus(void* args){
     uint8_t id = 0;
     uint8_t conn_node_id = 0;
     consensus_msg_t* msg = (consensus_msg_t*)malloc(sizeof(consensus_msg_t));
-    uint8_t* idd = (uint8_t*)malloc(sizeof(uint8_t));
-    *idd = 0;
+    //uint8_t* idd = (uint8_t*)malloc(sizeof(uint8_t));
+    //*idd = 0;
 
     read_socket(connfd_list_node[id], (char*)&conn_node_id, sizeof(uint8_t));
     uint8_t revised_id = conn_node_id > node_id ? conn_node_id-2 : conn_node_id-1;
@@ -165,41 +166,8 @@ void* listen_server_node_consensus(void* args){
     while(true){
         if(conn_node_id == 0){
             read_socket(connfd_list_node[id], (char*)(msg), sizeof(consensus_msg_t));
-            if(msg->epoch == 0 && msg->recover == 1 && msg->id_recover != node_id){
-                printf("recover message received with id = %d \n", msg->id_recover);
-                    
-                stop_queue();
-
-                clock_gettime(CLOCK_REALTIME, &start_copy);
-
-                copy_data(NULL);
-
-                stop_queue();
-
-                clock_gettime(CLOCK_REALTIME, &now_copy);
-
-                time_diff(start_batch, now_copy, diff_copy);
-
-                double start_nsec_in_ms = ((double)diff_copy->tv_nsec / 1000000);
-                double start_sec_in_ms = ((double)diff_copy->tv_sec *1000);
-                double total_time_ = start_sec_in_ms + start_nsec_in_ms;
-
-                time_diff(start_copy, now_copy, diff_copy);
-
-                double nsec_in_sec = ((double)diff_copy->tv_nsec / 1000000000);
-                double elapsed_ = (double)diff_copy->tv_sec + nsec_in_sec;
-
-                printf("%f: Copy time: %f \n", total_time_, elapsed_);
-
-                *idd = msg->id_recover;
-                printf("will create client thread %d \n", *idd);
-                pthread_create(&client[msg->id_recover], NULL, &open_client_node, idd);
-
-                switch_recover_mode(msg->id_recover);
-            }
-        else{
-                enqueue_message(msg);
-            }
+            msleep(ENQUEUE_DELAY);
+            enqueue_message(msg);
         }
     }
 }
@@ -390,6 +358,45 @@ void open_server_node(){
     if((listen(server_sockfd, 32)) != 0){
         printf("listen failed \n");
     }
+}
+
+void received_recover_msg(int id_recover){
+    if(id_recover == node_id){
+        return;
+    }
+    
+    printf("recover message received with id = %d \n", id_recover);
+                    
+    stop_queue();
+
+    clock_gettime(CLOCK_REALTIME, &start_copy);
+
+    copy_data(NULL);
+
+    stop_queue();
+
+    clock_gettime(CLOCK_REALTIME, &now_copy);
+
+    time_diff(start_batch, now_copy, diff_copy);
+
+    double start_nsec_in_ms = ((double)diff_copy->tv_nsec / 1000000);
+    double start_sec_in_ms = ((double)diff_copy->tv_sec *1000);
+    double total_time_ = start_sec_in_ms + start_nsec_in_ms;
+
+    time_diff(start_copy, now_copy, diff_copy);
+
+    double nsec_in_sec = ((double)diff_copy->tv_nsec / 1000000000);
+    double elapsed_ = (double)diff_copy->tv_sec + nsec_in_sec;
+
+    printf("%f: Copy time: %f \n", total_time_, elapsed_);
+
+    int* idd = (int*)malloc(sizeof(int));
+    *idd = id_recover;
+    printf("will create client thread %d \n", id_recover);
+    pthread_create(&client[id_recover], NULL, &open_client_node, idd);
+    printf("has created client thread %d \n", id_recover);
+
+    switch_recover_mode(id_recover);
 }
 
 void init_node(uint8_t id){

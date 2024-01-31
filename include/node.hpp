@@ -12,6 +12,8 @@
 #include <errno.h>
 #include <pthread.h>
 
+#define ENQUEUE_DELAY 4 //In ms (artificially reduce the number of batch received to harmonize execution speed for all node)
+
 static uint8_t node_id;
 
 //Of size total_node - 1;
@@ -43,5 +45,6 @@ static timespec* diff_copy;
 static struct timespec start_transfert, begin_transfert, now_transfert;
 static timespec* diff_transfert;
 
+void received_recover_msg(int id_recover);
 
 void init_node(uint8_t id);

@@ -27,6 +27,12 @@ void* queue_thread(void* args){
         if(is_empty() == 0 && stop == 0){
 
             consensus_msg_t message = dequeue_message();
+
+            if(message.epoch == 0 && message.recover == 1){
+                received_recover_msg(message.id_recover);
+                continue;    
+            }
+
             memcpy(batch.addr, &(message.batch), sizeof(addr_t)*BATCH_SIZE);
 
             execute_batch(&batch, message.epoch, 0);
